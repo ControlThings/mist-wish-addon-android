@@ -28,7 +28,10 @@ public class WishBridgeJni {
      */
     public native void register(WishBridge wab);
 
-    public native void receive_core_to_app(byte buffer[]);
+    public synchronized native void receive_core_to_app(byte buffer[]);
+
+
+    public native void connected(boolean status);
 
     public void cleanup() {
         Log.d(TAG, "cleanup app");

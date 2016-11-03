@@ -11,9 +11,6 @@ class Endpoint {
     static final int MIST_TYPE_STRING = 3;
     /* ... */
 
-
-
-
     private MistNodeApi mistNodeApi;
 
     private Endpoint next;
@@ -25,18 +22,23 @@ class Endpoint {
     private Endpoint firstChild;
     private Endpoint parent;
 
-    private String name;
+    private String id;
+    private String label;
+    private String unit;
+    private int type;
 
     private boolean readable;
     protected boolean writable;
     private boolean invokable;
 
-    private int type;
+    private Invokable invokeCallback;
 
-    private Invokable invokeMethod;
-
-    protected Endpoint(String name, int type) {
+    protected Endpoint(String id, String label, int type, String unit, boolean readable) {
+        this.id = id;
+        this.label = label;
         this.type = type;
+        this.unit = unit;
+        this.readable = readable;
         mistNodeApi = MistNodeApi.getInstance();
     }
 
@@ -79,7 +81,7 @@ class Endpoint {
 
     public void setInvokable(Endpoint.Invokable i) {
         this.invokable = true;
-        invokeMethod = i;
+        invokeCallback = i;
     }
 
     public interface Invokable {
@@ -88,19 +90,19 @@ class Endpoint {
 
     void update(boolean newValue) {
         /* Call low-level C method for updating new values through JNI */
-        mistNodeApi.updateBool(name, newValue);
+        mistNodeApi.updateBool(id, newValue);
     }
 
     void update(int newValue) {
-        mistNodeApi.updateInt(name, newValue);
+        mistNodeApi.updateInt(id, newValue);
     }
 
     void update(double newValue) {
-        mistNodeApi.updateFloat(name, newValue);
+        mistNodeApi.updateFloat(id, newValue);
     }
 
     void update(String newValue) {
-        mistNodeApi.updateString(name, newValue);
+        mistNodeApi.updateString(id, newValue);
     }
 
 
