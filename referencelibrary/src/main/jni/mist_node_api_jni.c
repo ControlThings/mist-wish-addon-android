@@ -16,11 +16,15 @@ javah -classpath ../../../../referencelibrary/build/intermediates/classes/debug/
 */
 #include "mist_node_api_jni.h"
 #include "jni_utils.h"
+#include "mist_node_api_helper.h"
 
 #include "utlist.h"
 
 static JavaVM *javaVM;
-struct mist_model *model;
+static struct mist_model *model;
+static wish_app_t *app;
+
+
 
 struct endpoint_data {
     char *endpoint_id;
@@ -328,7 +332,6 @@ JNIEXPORT void JNICALL Java_fi_ct_mist_referencelibrary_api_mistNode_MistNodeApi
  */
 JNIEXPORT void JNICALL Java_fi_ct_mist_referencelibrary_api_mistNode_MistNodeApi_startMistApp
   (JNIEnv *env, jobject java_this, jstring java_appName) {
-
     android_wish_printf("in startMistApp");
     /* Register a refence to the JVM */
     if ((*env)->GetJavaVM(env,&javaVM) < 0) {
@@ -356,7 +359,7 @@ JNIEXPORT void JNICALL Java_fi_ct_mist_referencelibrary_api_mistNode_MistNodeApi
 
     model = &mist_app->model;
 
-    wish_app_t *app = wish_app_create(name_str);
+    app = wish_app_create(name_str);
     if (app == NULL) {
         WISHDEBUG(LOG_CRITICAL, "Failed creating wish app!");
     }
@@ -364,13 +367,14 @@ JNIEXPORT void JNICALL Java_fi_ct_mist_referencelibrary_api_mistNode_MistNodeApi
     mist_app->app = app;
     (*env)->ReleaseStringUTFChars(env, java_appName, name_str);
 
-
-
-    wish_app_login(app); /* This will be removed soon */
-
+    /* The app will login to core when the Bridge connects, this happens via the wish_app_connected(wish_app_t *app, bool connected) function */
 }
 
 
 void mist_follow_task_signal(void) {
     mist_follow_task();
+}
+
+wish_app_t *get_mist_node_app(void) {
+    return app;
 }

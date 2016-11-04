@@ -42,6 +42,7 @@ public class DeviceModel {
         /* Here we will first de-register the endpoints and shutdown the C mist_app */
 
         /* Close the Mist Android service */
+
     }
 
 }

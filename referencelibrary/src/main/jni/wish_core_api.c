@@ -22,6 +22,7 @@
 #include "cbson.h"
 
 #include "jni_utils.h"
+#include "mist_node_api_helper.h"
 
 
 extern wish_app_t *app; /* Created by start_mist_app in android_mist.c */
