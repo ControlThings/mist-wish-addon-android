@@ -28,6 +28,10 @@ class WishBridge {
     Intent wish;
 
     private void startWish() {
+
+
+
+
         wish = new Intent();
         wish.setComponent(new ComponentName("fi.ct.wish", "fi.ct.wish.Wish"));
         _context.startService(wish);

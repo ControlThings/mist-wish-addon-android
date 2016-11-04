@@ -4,12 +4,11 @@
 /local.properties
 /local.properties
 referencelibrary/src/main/obj
-referencelibrary/src/main/jni/cBSON
-referencelibrary/src/main/jni/ed25519
-referencelibrary/src/main/jni/mbedtls-2.1.2
+referencelibrary/src/main/jni/mist
 referencelibrary/src/main/jni/wish
 referencelibrary/src/main/jni/wish_app
+referencelibrary/src/main/jni/wish_app_deps
 referencelibrary/src/main/jni/wish_rpc
-referencelibrary/src/main/jni/port
 referencelibrary/src/main/jni/deps
+referencelibrary/src/main/libs/
 
