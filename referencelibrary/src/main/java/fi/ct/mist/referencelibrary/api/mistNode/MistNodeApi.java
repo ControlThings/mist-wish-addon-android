@@ -17,12 +17,13 @@ class MistNodeApi {
         return MistNodeApiHolder.INSTANCE;
     }
 
-    native void updateBool(String epName, boolean newValue);
-    native void updateInt(String epName, int newValue);
-    native void updateString(String epName, String newValue);
-    native void updateFloat(String epName, double newValue);
-    native void addEndpoint(Endpoint ep);
-    native void startMistApp(String appName);
+    synchronized native void updateBool(String epName, boolean newValue);
+    synchronized native void updateInt(String epName, int newValue);
+    synchronized native void updateString(String epName, String newValue);
+    synchronized native void updateFloat(String epName, double newValue);
+    synchronized native void addEndpoint(Endpoint ep);
+    synchronized native void startMistApp(String appName);
+
 
 
 }

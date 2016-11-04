@@ -5,10 +5,10 @@ package fi.ct.mist.referencelibrary.api.mistNode;
  */
 
 public class EndpointBoolean extends Endpoint {
-    private Writable writeMethod;
+    private Writable writeCallback;
 
-    public EndpointBoolean(String name) {
-        super(name, MIST_TYPE_BOOL);
+    public EndpointBoolean(String id, String label) {
+        super(id, label, MIST_TYPE_BOOL, "", true);
     }
 
     public interface Writable {
@@ -17,7 +17,7 @@ public class EndpointBoolean extends Endpoint {
 
     public void setWritable(EndpointBoolean.Writable w) {
         this.writable = true;
-        this.writeMethod = w;
+        this.writeCallback = w;
     }
 
     public void update(boolean newValue) {

@@ -65,6 +65,8 @@ JNIEXPORT void JNICALL Java_fi_ct_mist_api_wish_WishCoreApiJni_receive_1wish_1ap
         (JNIEnv *env, jobject jthis, jbyteArray java_buffer) {
     android_wish_printf("in receive wish api");
 
+#if 0
+#error
     if (app == NULL) {
         android_wish_printf("app is NULL, failing");
         return;
@@ -82,6 +84,8 @@ JNIEXPORT void JNICALL Java_fi_ct_mist_api_wish_WishCoreApiJni_receive_1wish_1ap
     send_app_to_core(app->wsid, buffer, buffer_length);
 
     free(buffer);
+#endif
+    android_wish_printf("returning from receive wish api");
 }
 
 /*
@@ -90,8 +94,9 @@ JNIEXPORT void JNICALL Java_fi_ct_mist_api_wish_WishCoreApiJni_receive_1wish_1ap
  * This function will forward the response from the core using receiveWishApi in WishCoreJni
  */
 void send_wish_api(uint8_t *buffer, size_t buffer_len) {
-    android_wish_printf("in receive wish api");
+    android_wish_printf("in send wish api");
 
+#if 0
     bool did_attach = false;
     JNIEnv * my_env = NULL;
     if (getJNIEnv(javaVM, &my_env, &did_attach)) {
@@ -117,5 +122,6 @@ void send_wish_api(uint8_t *buffer, size_t buffer_len) {
     android_wish_printf("Calling receiveWishApi");
     (*my_env)->CallVoidMethod(my_env, wishApiJniInstance, receiveWishApiMethodId, java_buffer);
     (*my_env)->DeleteLocalRef(my_env, java_buffer);
+#endif
 
 }

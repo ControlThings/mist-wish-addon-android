@@ -5,12 +5,12 @@ include $(CLEAR_VARS)
 # Here we give our module name and source file(s)
 
 
-WISH_MODULES = deps/mbedtls-2.1.2/library deps/cBSON wish_app wish_rpc deps/ed25519/src deps/bson
+WISH_MODULES = deps/mbedtls-2.1.2/library deps/cBSON wish_app wish_rpc deps/ed25519/src deps/bson mist
 
 WISH_SRC := 
 LOCAL_MODULE    := mist
-LOCAL_SRC_FILES := android_mist.c jni_utils.c device_api.c wish_core_api.c jni_app_service_ipc.c wish/wish_platform.c wish/wish_debug.c $(foreach sdir,$(WISH_MODULES),$(wildcard $(sdir)/*.c))
-LOCAL_C_INCLUDES := deps/mbedtls-2.1.2/include deps/cBSON wish deps/ed25519/src wish_rpc wish_app port/unix deps/bson/ deps/uthash
+LOCAL_SRC_FILES := android_mist.c jni_utils.c device_api.c wish_core_api.c jni_app_service_ipc.c mist_node_api_jni.c wish_app_deps/wish_platform.c wish_app_deps/wish_debug.c wish_app_deps/wish_utils.c $(foreach sdir,$(WISH_MODULES),$(wildcard $(sdir)/*.c))
+LOCAL_C_INCLUDES := deps/mbedtls-2.1.2/include deps/cBSON wish deps/ed25519/src wish_rpc wish_app wish_app_deps port/unix deps/bson/ deps/uthash/include mist
 LOCAL_LDLIBS := -llog
 LOCAL_CFLAGS := -O2 -Wall -Wno-pointer-sign -Werror -fvisibility=hidden
 

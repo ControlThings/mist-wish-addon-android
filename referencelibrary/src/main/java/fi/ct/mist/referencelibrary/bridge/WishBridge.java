@@ -70,6 +70,7 @@ public class WishBridge {
      * @param data
      */
     public void receiveAppToCore(byte[] wsid, byte[] data) {
+        /* FIXME synchronized (wishAppJni) ??? */
         Log.v(TAG, "in receiveAppToCore");
         if (!mBound) {
             Log.v(TAG, "Error: not bound, attempting rebound");

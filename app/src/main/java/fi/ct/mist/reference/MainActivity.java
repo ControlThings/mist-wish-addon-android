@@ -46,31 +46,9 @@ public class MainActivity extends AppCompatActivity {
         protected void onReceiveResult(int resultCode, Bundle resultData) {
             //process results
             Log.d(TAG, "connected");
-
+            Torch torch = new Torch(getBaseContext());
         }
     };
-
-    private BridgeConnection connection = new BridgeConnection(new BridgeConnection.BridgeServiceConnection() {
-        @Override
-        public void onBridgeConnected(ComponentName name, IBinder apiHandler) {
-            Log.d(TAG, "onServiceConnected");
-            _apiHandler = (Mist.ApiHandler) apiHandler;
-            // nodeApi = _apiHandler.getNodeApi();
-            apiBound = true;
-
-            Torch torch = new Torch(getBaseContext());
-
-        }
-
-        @Override
-        public void onBridgeDisconnected(ComponentName name) {
-            if (apiBound) {
-                unbindService(connection);
-                _apiHandler.close();
-            }
-            apiBound = false;
-        }
-    });
 
     @Override
     public void onDestroy() {
