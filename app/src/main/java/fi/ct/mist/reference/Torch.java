@@ -26,7 +26,7 @@ public class Torch {
         this._context = context;
 
         DeviceModel model = new DeviceModel("Torch");
-        final EndpointBoolean reflectorEndpoint = new EndpointBoolean("reflection", "Reflection");
+        final EndpointBoolean reflectorEndpoint = new EndpointBoolean("reflection", "Reflection1");
 
 
         endpointBoolean = new EndpointBoolean("torch", "Torch");
