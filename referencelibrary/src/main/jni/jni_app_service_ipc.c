@@ -18,11 +18,11 @@ static JavaVM *javaVM;
 static jobject wishAppBridgeInstance;
 
 /*
-* Class:     fi_ct_mist_bridge_WishAppJni
+* Class:     fi_ct_mist_WishAppJni
 * Method:    register
-* Signature: (Lfi/ct/mist/bridge/WishAppBridge;)V
+* Signature: (Lfi/ct/mist/WishAppBridge;)V
 */
-JNIEXPORT void JNICALL Java_fi_ct_mist_referencelibrary_bridge_WishBridgeJni_register(JNIEnv *env, jobject jthis, jobject wishAppBridge) {
+JNIEXPORT void JNICALL Java_fi_ct_mist_referencelibrary_WishBridgeJni_register(JNIEnv *env, jobject jthis, jobject wishAppBridge) {
     /* Register a refence to the JVM */
     if ((*env)->GetJavaVM(env,&javaVM) < 0) {
         android_wish_printf("Failed to GetJavaVM");
@@ -84,7 +84,7 @@ void send_app_to_core(uint8_t *wsid, uint8_t *data, size_t len) {
     (*my_env)->DeleteLocalRef(my_env, java_wsid);
 }
 
-JNIEXPORT void JNICALL Java_fi_ct_mist_referencelibrary_bridge_WishBridgeJni_receive_1core_1to_1app(JNIEnv *env, jobject jthis, jbyteArray java_data) {
+JNIEXPORT void JNICALL Java_fi_ct_mist_referencelibrary_WishBridgeJni_receive_1core_1to_1app(JNIEnv *env, jobject jthis, jbyteArray java_data) {
     android_wish_printf("Receive core to app");
 
     size_t data_length = (*env)->GetArrayLength(env, java_data);
