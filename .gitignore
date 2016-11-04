@@ -3,6 +3,7 @@
 /build
 /local.properties
 /local.properties
+referencelibrary/src/main/obj
 referencelibrary/src/main/jni/cBSON
 referencelibrary/src/main/jni/ed25519
 referencelibrary/src/main/jni/mbedtls-2.1.2
