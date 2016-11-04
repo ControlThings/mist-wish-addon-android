@@ -5,8 +5,8 @@ import android.content.Context;
 import android.content.pm.PackageManager;
 import android.hardware.Camera;
 import android.hardware.Camera.Parameters;
-import android.util.Log;
 
+import fi.ct.mist.referencelibrary.Mist;
 import fi.ct.mist.referencelibrary.api.mistNode.DeviceModel;
 import fi.ct.mist.referencelibrary.api.mistNode.EndpointBoolean;
 
@@ -26,29 +26,26 @@ public class Torch {
         this._context = context;
 
         DeviceModel model = new DeviceModel("Torch");
-        final EndpointBoolean reflectorEndpoint = new EndpointBoolean("reflection", "Reflection");
+        final EndpointBoolean reflectorEndpoint = new EndpointBoolean("reflection");
 
 
-        endpointBoolean = new EndpointBoolean("torch", "Torch");
+        endpointBoolean = new EndpointBoolean("torch");
         endpointBoolean.setWritable(new EndpointBoolean.Writable() {
             @Override
             public void write(boolean value) {
-                if (value) {
-                    //turnFlashOn();
-                    Log.d(TAG, "Turning torch on!");
+                if (!value) {
+                    turnFlashOn();
 
                 }
                 else  {
-                    //turnFlashOff();
-                    Log.d(TAG, "Turning torch on!");
+                    turnFlashOff();
                 }
-                endpointBoolean.update(value);
                 reflectorEndpoint.update(value);
             }
         });
         endpointBoolean.addNext(reflectorEndpoint);
-        model.setRootEndpoint(endpointBoolean);
 
+        
 
         boolean hasFlash = context.getPackageManager()
                 .hasSystemFeature(PackageManager.FEATURE_CAMERA_FLASH);
