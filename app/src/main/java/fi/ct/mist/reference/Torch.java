@@ -26,10 +26,11 @@ public class Torch {
         this._context = context;
 
         DeviceModel model = new DeviceModel("Torch");
+
+
         final EndpointBoolean reflectorEndpoint = new EndpointBoolean("reflection", "Reflection");
-
-
         endpointBoolean = new EndpointBoolean("torch", "Torch");
+
         endpointBoolean.setWritable(new EndpointBoolean.Writable() {
             @Override
             public void write(boolean value) {
@@ -40,7 +41,7 @@ public class Torch {
                 }
                 else  {
                     //turnFlashOff();
-                    Log.d(TAG, "Turning torch on!");
+                    Log.d(TAG, "Turning torch off!");
                 }
                 endpointBoolean.update(value);
                 reflectorEndpoint.update(value);

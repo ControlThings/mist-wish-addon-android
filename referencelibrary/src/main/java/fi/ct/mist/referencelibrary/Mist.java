@@ -60,17 +60,22 @@ public class Mist extends Service {
 
     public void cleanup() {
         wishBridgeJni.cleanup();
+        /* FIXME Call wishBridgeJni.connected(false) ?? */
     }
 
-    public void onBridgeConected() {
+    public void onBridgeConnected() {
         Log.d(TAG, "Bridge Conected");
+        /*
         Bundle parameters = _intent.getExtras();
         ResultReceiver resultReceiver = parameters.getParcelable("receiver");
         resultReceiver.send(123, Bundle.EMPTY);
+        */
+        wishBridgeJni.connected(true);
     }
 
     public void close() {
         cleanup();
+        wishBridgeJni.connected(false);
     }
 }
 

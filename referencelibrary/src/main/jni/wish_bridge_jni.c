@@ -7,11 +7,13 @@
 #include <stdlib.h>
 #include <stdio.h>
 
-#include "jni_app_service_ipc.h"
 #include "wish_app.h"
 #include "app_service_ipc.h"
 
+/* To re-generate the JNI Header file: javah -classpath ../../../../referencelibrary/build/intermediates/classes/debug/:/home/jan/Android/Sdk/platforms/android-16/android.jar -o wish_bridge_jni.h fi.ct.mist.referencelibrary.WishBridgeJni */
+#include "wish_bridge_jni.h"
 #include "jni_utils.h"
+#include "mist_node_api_helper.h"
 
 static JavaVM *javaVM;
 
@@ -104,4 +106,16 @@ JNIEXPORT void JNICALL Java_fi_ct_mist_referencelibrary_WishBridgeJni_receive_1c
     }
 
     free(data);
+}
+
+/*
+ * Class:     fi_ct_mist_referencelibrary_WishBridgeJni
+ * Method:    connected
+ * Signature: (Z)V
+ */
+JNIEXPORT void JNICALL Java_fi_ct_mist_referencelibrary_WishBridgeJni_connected
+  (JNIEnv *env, jobject jthis, jboolean connected) {
+    /* Call wish_app_login on our app */
+    wish_app_connected(get_mist_node_app(), connected);
+
 }

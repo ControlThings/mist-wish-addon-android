@@ -6,6 +6,10 @@ package fi.ct.mist.referencelibrary.api.mistNode;
 
 class MistNodeApi {
 
+    static {
+        System.loadLibrary("mist");
+    }
+
     private MistNodeApi() {}
 
 

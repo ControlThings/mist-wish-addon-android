@@ -33,6 +33,7 @@ class WishBridge {
 
     private void startWish() {
 
+        /*
         // download wish app if it dosn't exist.
         try {
             _context.getPackageManager().getPackageInfo("fi.ct.wish", PackageManager.GET_ACTIVITIES);
@@ -56,7 +57,7 @@ class WishBridge {
 
             //_context.startActivity(intent);
         }
-
+*/
 
         wish = new Intent();
         wish.setComponent(new ComponentName("fi.ct.wish", "fi.ct.wish.Wish"));
@@ -83,7 +84,7 @@ class WishBridge {
             } catch (RemoteException e) {
                 Log.d(TAG, "remote exeption in open:");
             }
-            _mist.onBridgeConected();
+            _mist.onBridgeConnected();
         }
 
         @Override
