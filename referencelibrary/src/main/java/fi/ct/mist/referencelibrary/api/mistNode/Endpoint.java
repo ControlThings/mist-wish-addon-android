@@ -51,6 +51,7 @@ class Endpoint {
     }
 
     public void addChild(Endpoint child) {
+        /* FIXME unimplemented */
         if (firstChild == null) {
             firstChild = child;
         } else {

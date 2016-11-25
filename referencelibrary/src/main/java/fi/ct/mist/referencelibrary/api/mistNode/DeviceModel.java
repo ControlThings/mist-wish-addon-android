@@ -22,7 +22,7 @@ public class DeviceModel {
     }
 
     public void addChildEndpoint(Endpoint parent) {
-
+        /* FIXME unimplemented */
     }
 
     public void setRootEndpoint(Endpoint root) {
@@ -39,7 +39,7 @@ public class DeviceModel {
     }
 
     public void close() {
-        /* Here we will first de-register the endpoints and shutdown the C mist_app */
+        /* FIXME Here we will first de-register the endpoints and shutdown the C mist_app */
 
         /* Close the Mist Android service */
 
