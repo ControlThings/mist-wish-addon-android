@@ -84,7 +84,7 @@ class WishBridge {
             } catch (RemoteException e) {
                 Log.d(TAG, "remote exeption in open:");
             }
-            _mist.onBridgeConnected();
+            _jni.connected(true);
         }
 
         @Override
@@ -135,9 +135,7 @@ class WishBridge {
         }
     };
 
-    void cleanup() {
-        // _context.stopService(wish);
-        //_context.unbindService(wish);
+    void unbind() {
         Log.d(TAG, "cleanup appBridge");
         if (mBound) {
             _context.unbindService(mConnection);

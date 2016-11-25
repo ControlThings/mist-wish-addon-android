@@ -28,10 +28,10 @@ class WishBridgeJni {
      native void receive_core_to_app(byte buffer[]);
      native void connected(boolean status);
 
-     void cleanup() {
-        Log.d(TAG, "cleanup app");
-       wishBridge.cleanup();
-    }
+     void disconnect() {
+         connected(false);
+         wishBridge.unbind();
+     }
 
 }
 
