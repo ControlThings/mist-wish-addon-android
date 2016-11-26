@@ -349,7 +349,7 @@ JNIEXPORT void JNICALL Java_fi_ct_mist_referencelibrary_api_mistNode_MistNodeApi
     wish_platform_set_vprintf(android_wish_vprintf);
     wish_platform_set_vsprintf(vsprintf);
 
-    mist_app_context_t *mist_app = start_mist_app();
+    mist_app_t *mist_app = start_mist_app();
     if (mist_app == NULL) {
         WISHDEBUG(LOG_CRITICAL, "Failed creating mist app!");
     }
@@ -370,10 +370,11 @@ JNIEXPORT void JNICALL Java_fi_ct_mist_referencelibrary_api_mistNode_MistNodeApi
     /* The app will login to core when the Bridge connects, this happens via the wish_app_connected(wish_app_t *app, bool connected) function */
 }
 
-
+#if 0
 void mist_follow_task_signal(void) {
     mist_follow_task();
 }
+#endif
 
 wish_app_t *get_mist_node_app(void) {
     return app;
