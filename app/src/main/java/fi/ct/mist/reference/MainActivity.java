@@ -20,25 +20,16 @@ public class MainActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
-        /* Initialise Mist */
         mist = new Intent(this, Mist.class);
-        //mist.putExtra("receiver", onConnect);
         torch = new Torch(getBaseContext());
-
         startService(mist);
     }
 
-    /*
-    private ResultReceiver onConnect = new ResultReceiver(new Handler()) {
-        protected void onReceiveResult(int resultCode, Bundle resultData) {
-            Log.d(TAG, "onConnect");
-        }
-    };
-    */
 
     @Override
     public void onDestroy() {
         super.onDestroy();
-
+        torch.cleanup();
+        stopService(mist);
     }
 }
