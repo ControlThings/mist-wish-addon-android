@@ -308,10 +308,11 @@ JNIEXPORT void JNICALL Java_fi_ct_mist_referencelibrary_api_mistNode_MistNodeApi
         if (invokeCallbackField == NULL) {
             android_wish_printf("Could not get invokablefield");
             return;
+        } else {
+            jobject invokeCallbackObject = (*env)->GetObjectField(env, java_Endpoint, invokeCallbackField);
+            ep_data->invokable_object = (*env)->NewGlobalRef(env, invokeCallbackObject);
+            ep_invoke_fn = hw_invoke;
         }
-        jobject invokeCallbackObject = (*env)->GetObjectField(env, java_Endpoint, invokeCallbackField);
-        ep_data->invokable_object = invokeCallbackObject;
-        ep_invoke_fn = hw_invoke;
     }
 
     /* Actually add the endpoint */
