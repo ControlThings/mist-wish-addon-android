@@ -7,8 +7,8 @@
 #include <time.h>
 
 #include "mist_app.h"
-#include "mist_follow_funcs.h"
 #include "mist_model.h"
+#include "mist_follow.h"
 
 /*
 To re-create JNI interface header file:
