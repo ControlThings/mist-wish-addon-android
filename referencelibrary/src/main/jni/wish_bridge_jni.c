@@ -24,20 +24,28 @@ static jobject wishAppBridgeInstance;
 * Method:    register
 * Signature: (Lfi/ct/mist/WishAppBridge;)V
 */
-JNIEXPORT void JNICALL Java_fi_ct_mist_referencelibrary_WishBridgeJni_register(JNIEnv *env, jobject jthis, jobject wishAppBridge) {
+JNIEXPORT jobject JNICALL Java_fi_ct_mist_referencelibrary_WishBridgeJni_register(JNIEnv *env, jobject jthis, jobject wishAppBridge) {
     /* Register a refence to the JVM */
     if ((*env)->GetJavaVM(env,&javaVM) < 0) {
         android_wish_printf("Failed to GetJavaVM");
-        return;
+        return NULL;
     }
 
     /* Create a global reference to the WishAppBridge instance here */
     wishAppBridgeInstance = (*env)->NewGlobalRef(env, wishAppBridge);
     if (wishAppBridgeInstance == NULL) {
         android_wish_printf("Out of memory!");
-        return;
+        return NULL;
     }
 
+    jbyteArray java_wsid = (*env)->NewByteArray(env, WISH_WSID_LEN);
+    if (java_wsid == NULL) {
+        android_wish_printf("Failed creating wsid byte array");
+        return NULL;
+    }
+    (*env)->SetByteArrayRegion(env, java_wsid, 0, WISH_WSID_LEN, (const jbyte *) get_mist_node_app()->wsid);
+
+    return java_wsid;
 }
 
 uint8_t my_wsid[WISH_WSID_LEN];

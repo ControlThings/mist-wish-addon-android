@@ -10,9 +10,9 @@ extern "C" {
 /*
  * Class:     fi_ct_mist_referencelibrary_WishBridgeJni
  * Method:    register
- * Signature: (Lfi/ct/mist/referencelibrary/WishBridge;)V
+ * Signature: (Lfi/ct/mist/referencelibrary/WishBridge;)[B
  */
-JNIEXPORT void JNICALL Java_fi_ct_mist_referencelibrary_WishBridgeJni_register
+JNIEXPORT jbyteArray JNICALL Java_fi_ct_mist_referencelibrary_WishBridgeJni_register
   (JNIEnv *, jobject, jobject);
 
 /*

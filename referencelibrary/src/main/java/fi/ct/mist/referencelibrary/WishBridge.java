@@ -31,7 +31,7 @@ class WishBridge {
 
     Intent wish;
 
-    private void startWish() {
+    void startWish() {
 
         /*
         // download wish app if it dosn't exist.
@@ -61,6 +61,12 @@ class WishBridge {
 
         wish = new Intent();
         wish.setComponent(new ComponentName("fi.ct.wish", "fi.ct.wish.Wish"));
+        /* Save WSID to the Intent, so that Wish core's end of the bridge can see the difference between Intent's of different Wish services */
+        if (_jni.wsid != null) {
+            wish.putExtra("EXTRA_WSID", _jni.wsid);
+        } else {
+            Log.d(TAG, "WARNING FAIL cannot add EXTRA_WSID because wsid is null!");
+        }
         _context.startService(wish);
         this._context.bindService(wish, mConnection, 0); //Context.BIND_AUTO_CREATE
     }
@@ -70,8 +76,10 @@ class WishBridge {
         this._jni = jni;
         this._mist = mist;
 
-        startWish();
+        //startWish();  //Note: Don't start wish service here, because we need to first get the wsid. Let WishBridgeJni start the service instead, after wsid is saved.
     }
+
+
 
 
     private ServiceConnection mConnection = new ServiceConnection() {
