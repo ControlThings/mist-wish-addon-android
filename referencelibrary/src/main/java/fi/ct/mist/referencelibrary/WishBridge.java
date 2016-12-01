@@ -7,6 +7,7 @@ import android.content.Intent;
 import android.content.ServiceConnection;
 import android.content.pm.PackageManager;
 import android.net.Uri;
+import android.os.Binder;
 import android.os.IBinder;
 import android.os.RemoteException;
 import android.util.Log;
@@ -30,6 +31,8 @@ class WishBridge {
     boolean mBound = false;
 
     Intent wish;
+
+    private byte[] _wsid;
 
     void startWish() {
 
@@ -63,7 +66,8 @@ class WishBridge {
         wish.setComponent(new ComponentName("fi.ct.wish", "fi.ct.wish.Wish"));
         /* Save WSID to the Intent, so that Wish core's end of the bridge can see the difference between Intent's of different Wish services */
         if (_jni.wsid != null) {
-            wish.putExtra("EXTRA_WSID", _jni.wsid);
+            //wish.putExtra("EXTRA_WSID", _jni.wsid);
+            _wsid = _jni.wsid;
         } else {
             Log.d(TAG, "WARNING FAIL cannot add EXTRA_WSID because wsid is null!");
         }
@@ -88,6 +92,7 @@ class WishBridge {
             coreBridge = CoreBridge.Stub.asInterface(service);
             mBound = true;
             try {
+                coreBridge.registerProcessDeath(new Binder(), _wsid);
                 coreBridge.open(bridge);
             } catch (RemoteException e) {
                 Log.d(TAG, "remote exeption in open:");
