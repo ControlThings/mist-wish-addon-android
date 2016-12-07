@@ -158,9 +158,8 @@ JNIEXPORT void JNICALL Java_fi_ct_mist_referencelibrary_api_mistNode_MistNodeApi
         return;
     }
     ep_data->bool_value = java_newValue;
-    (*env)->ReleaseStringUTFChars(env, java_epID, id_str);
     mist_value_changed(model, id_str);
-
+    (*env)->ReleaseStringUTFChars(env, java_epID, id_str);
 }
 
 /*
