@@ -17,12 +17,17 @@ javah -classpath ../../../../referencelibrary/build/intermediates/classes/debug/
 #include "mist_node_api_jni.h"
 #include "jni_utils.h"
 #include "mist_node_api_helper.h"
+#include "wish_fs.h"
 
 #include "utlist.h"
+#include "filesystem.h"
+
 
 static JavaVM *javaVM;
 static struct mist_model *model;
 static wish_app_t *app;
+static jobject mistNodeApiInstance;
+
 
 
 
@@ -153,7 +158,9 @@ JNIEXPORT void JNICALL Java_fi_ct_mist_referencelibrary_api_mistNode_MistNodeApi
         return;
     }
     ep_data->bool_value = java_newValue;
+    (*env)->ReleaseStringUTFChars(env, java_epID, id_str);
     mist_value_changed(model, id_str);
+
 }
 
 /*
@@ -350,6 +357,17 @@ JNIEXPORT void JNICALL Java_fi_ct_mist_referencelibrary_api_mistNode_MistNodeApi
     wish_platform_set_vprintf(android_wish_vprintf);
     wish_platform_set_vsprintf(vsprintf);
 
+    /* File system functions are needed for Mist mappings! */
+    wish_fs_set_open(my_fs_open);
+    wish_fs_set_read(my_fs_read);
+    wish_fs_set_write(my_fs_write);
+    wish_fs_set_lseek(my_fs_lseek);
+    wish_fs_set_close(my_fs_close);
+    wish_fs_set_rename(my_fs_rename);
+    wish_fs_set_remove(my_fs_remove);
+
+    mistNodeApiInstance = (*env)->NewGlobalRef(env, java_this);
+
     mist_app_t *mist_app = start_mist_app();
     if (mist_app == NULL) {
         WISHDEBUG(LOG_CRITICAL, "Failed creating mist app!");
@@ -379,4 +397,12 @@ void mist_follow_task_signal(void) {
 
 wish_app_t *get_mist_node_app(void) {
     return app;
+}
+
+JavaVM *getJavaVM(void) {
+    return javaVM;
+}
+
+jobject getMistNodeApiInstance() {
+    return mistNodeApiInstance;
 }
