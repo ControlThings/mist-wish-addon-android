@@ -1,6 +1,9 @@
 package fi.ct.mist.reference;
 
 import android.content.Intent;
+import android.content.res.Configuration;
+import android.os.Handler;
+import android.support.v4.os.ResultReceiver;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 
@@ -28,6 +31,10 @@ public class MainActivity extends AppCompatActivity {
         startService(mist);
     }
 
+    @Override
+    public void onConfigurationChanged(Configuration newConfig) {
+        super.onConfigurationChanged(newConfig);
+    }
 
     @Override
     public void onDestroy() {

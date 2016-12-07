@@ -1,5 +1,6 @@
 package fi.ct.mist.mistnodeapi.api.mistNode;
 
+import android.content.Context;
 import android.util.Log;
 
 /**
@@ -11,12 +12,12 @@ public class DeviceModel {
     private Endpoint root;
     MistNodeApi mistNodeApi;
 
-    public DeviceModel(String name) {
+    public DeviceModel(String name, Context context) {
         this.name = name;
         mistNodeApi = MistNodeApi.getInstance();
 
         /* Start mist app via JNI. */
-        mistNodeApi.startMistApp(name);
+        mistNodeApi.startMistApp(name, context);
 
         /* FIXME Check that the mist app was started correctly */
     }

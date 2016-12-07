@@ -38,7 +38,7 @@ public class FlashLight {
         this._context = context;
         initCameraId();
 
-        model = new DeviceModel("Light");
+        model = new DeviceModel("Light", context);
 
         lightOn = new EndpointBoolean("torch", "Torch");
 
