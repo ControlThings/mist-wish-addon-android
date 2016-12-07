@@ -1,27 +1,30 @@
 package fi.ct.mist.reference;
 
 import android.content.Intent;
-import android.os.Handler;
-import android.support.v4.os.ResultReceiver;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
-import android.util.Log;
 
-import fi.ct.mist.referencelibrary.Mist;
+import fi.ct.mist.mistnodeapi.Mist;
 
 public class MainActivity extends AppCompatActivity {
 
     private final String TAG = "MainActivity";
+
     private Intent mist;
-    Torch torch;
+    FlashLight light;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
+        // Init Mist
         mist = new Intent(this, Mist.class);
-        torch = new Torch(getBaseContext());
+
+        // Initialize driver (contains Mist endpoints and model)
+        light = new FlashLight(getBaseContext());
+
+        // Start Mist service
         startService(mist);
     }
 
@@ -29,7 +32,7 @@ public class MainActivity extends AppCompatActivity {
     @Override
     public void onDestroy() {
         super.onDestroy();
-        torch.cleanup();
+        light.cleanup();
         stopService(mist);
     }
 }

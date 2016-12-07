@@ -1,1 +1,1 @@
-include ':app', ':referencelibrary'
+include ':app', ':MistNodeApi'

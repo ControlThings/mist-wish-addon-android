@@ -20,8 +20,8 @@ android {
 }
 
 dependencies {
-    debugCompile project(path: ':referencelibrary', configuration: 'debug')
-    releaseCompile project(path: ':referencelibrary', configuration: 'release')
+    debugCompile project(path: ':MistNodeApi', configuration: 'debug')
+    releaseCompile project(path: ':MistNodeApi', configuration: 'release')
     compile fileTree(dir: 'libs', include: ['*.jar'])
     androidTestCompile('com.android.support.test.espresso:espresso-core:2.2.2', {
         exclude group: 'com.android.support', module: 'support-annotations'

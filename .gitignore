@@ -3,12 +3,12 @@
 /build
 /local.properties
 /local.properties
-referencelibrary/src/main/obj
-referencelibrary/src/main/jni/mist
-referencelibrary/src/main/jni/wish
-referencelibrary/src/main/jni/wish_app
-referencelibrary/src/main/jni/wish_app_deps
-referencelibrary/src/main/jni/wish_rpc
-referencelibrary/src/main/jni/deps
-referencelibrary/src/main/libs/
+MistNodeApi/src/main/obj
+MistNodeApi/src/main/jni/mist
+MistNodeApi/src/main/jni/wish
+MistNodeApi/src/main/jni/wish_app
+MistNodeApi/src/main/jni/wish_app_deps
+MistNodeApi/src/main/jni/wish_rpc
+MistNodeApi/src/main/jni/deps
+MistNodeApi/src/main/libs/
 
