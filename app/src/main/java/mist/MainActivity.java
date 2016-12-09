@@ -1,11 +1,12 @@
-package fi.ct.mist.reference;
+package mist;
 
 import android.content.Intent;
 import android.content.res.Configuration;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
+import android.util.Log;
 
-import fi.ct.mist.mistnodeapi.Mist;
+import fi.ct.mist.reference.R;
 
 public class MainActivity extends AppCompatActivity {
 

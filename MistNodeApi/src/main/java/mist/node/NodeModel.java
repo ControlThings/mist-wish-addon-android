@@ -1,4 +1,4 @@
-package fi.ct.mist.mistnodeapi.api.mistNode;
+package mist.node;
 
 import android.content.Context;
 import android.util.Log;
@@ -7,12 +7,12 @@ import android.util.Log;
  * Created by jan on 11/1/16.
  */
 
-public class DeviceModel {
+public class NodeModel {
     private String name;
     private Endpoint root;
     MistNodeApi mistNodeApi;
 
-    public DeviceModel(String name, Context context) {
+    public NodeModel(String name, Context context) {
         this.name = name;
         mistNodeApi = MistNodeApi.getInstance();
 

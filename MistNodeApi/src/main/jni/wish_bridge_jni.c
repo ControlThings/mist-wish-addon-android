@@ -10,7 +10,21 @@
 #include "wish_app.h"
 #include "app_service_ipc.h"
 
-/* To re-generate the JNI Header file: javah -classpath ../../../../mistnodeapi/build/intermediates/classes/debug/:/home/jan/Android/Sdk/platforms/android-16/android.jar -o wish_bridge_jni.h fi.ct.mist.mistnodeapi.WishBridgeJni */
+/*
+To re-create JNI interface:
+
+ 1. Renew header file using javah
+      javah -classpath ../../../../mistnodeapi/build/intermediates/classes/debug/:/home/jan/Android/Sdk/platforms/android-16/android.jar -o wish_bridge_jni.h mist.WishBridgeJni
+ 2. Fix .c file function names to correspond to new .h file
+ 3. Fix all calls to java from c (if any)
+      from:
+        jfieldID invokeCallbackField = (*env)->GetFieldID(env, endpointClass, "invokeCallback", "Lfi/ct/mist/nodeApi/Endpoint$Invokable;");
+      to:
+        jfieldID invokeCallbackField = (*env)->GetFieldID(env, endpointClass, "invokeCallback", "Lmist/node/Endpoint$Invokable;");
+
+*/
+
+/* To re-generate the JNI Header file:  */
 #include "wish_bridge_jni.h"
 #include "jni_utils.h"
 #include "mist_node_api_helper.h"
@@ -24,7 +38,7 @@ static jobject wishAppBridgeInstance;
 * Method:    register
 * Signature: (Lfi/ct/mist/WishAppBridge;)V
 */
-JNIEXPORT jobject JNICALL Java_fi_ct_mist_mistnodeapi_WishBridgeJni_register(JNIEnv *env, jobject jthis, jobject wishAppBridge) {
+JNIEXPORT jobject JNICALL Java_mist_WishBridgeJni_register(JNIEnv *env, jobject jthis, jobject wishAppBridge) {
     /* Register a refence to the JVM */
     if ((*env)->GetJavaVM(env,&javaVM) < 0) {
         android_wish_printf("Failed to GetJavaVM");
@@ -94,7 +108,7 @@ void send_app_to_core(uint8_t *wsid, uint8_t *data, size_t len) {
     (*my_env)->DeleteLocalRef(my_env, java_wsid);
 }
 
-JNIEXPORT void JNICALL Java_fi_ct_mist_mistnodeapi_WishBridgeJni_receive_1core_1to_1app(JNIEnv *env, jobject jthis, jbyteArray java_data) {
+JNIEXPORT void JNICALL Java_mist_WishBridgeJni_receive_1core_1to_1app(JNIEnv *env, jobject jthis, jbyteArray java_data) {
     android_wish_printf("Receive core to app");
 
     size_t data_length = (*env)->GetArrayLength(env, java_data);
@@ -121,7 +135,7 @@ JNIEXPORT void JNICALL Java_fi_ct_mist_mistnodeapi_WishBridgeJni_receive_1core_1
  * Method:    connected
  * Signature: (Z)V
  */
-JNIEXPORT void JNICALL Java_fi_ct_mist_mistnodeapi_WishBridgeJni_connected
+JNIEXPORT void JNICALL Java_mist_WishBridgeJni_connected
   (JNIEnv *env, jobject jthis, jboolean connected) {
     /* Call wish_app_login on our app */
     wish_app_connected(get_mist_node_app(), connected);

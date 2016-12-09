@@ -1,4 +1,4 @@
-package fi.ct.mist.mistnodeapi.api.mistNode;
+package mist.node;
 
 import android.content.Context;
 

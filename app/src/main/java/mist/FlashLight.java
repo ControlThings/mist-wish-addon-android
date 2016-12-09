@@ -1,4 +1,4 @@
-package fi.ct.mist.reference;
+package mist;
 
 import android.content.Context;
 import android.content.pm.PackageManager;
@@ -6,8 +6,8 @@ import android.hardware.Camera;
 import android.hardware.camera2.CameraManager;
 import android.os.Build;
 
-import fi.ct.mist.mistnodeapi.api.mistNode.DeviceModel;
-import fi.ct.mist.mistnodeapi.api.mistNode.EndpointBoolean;
+import mist.node.NodeModel;
+import mist.node.EndpointBoolean;
 
 /**
  * Created by jeppe on 9/12/16.
@@ -29,7 +29,7 @@ public class FlashLight {
     private String cameraId;
 
     // Mist device/node model
-    DeviceModel model;
+    NodeModel model;
     // Mist endpoint
     private EndpointBoolean lightOn;
 
@@ -38,7 +38,7 @@ public class FlashLight {
         this._context = context;
         initCameraId();
 
-        model = new DeviceModel("Light", context);
+        model = new NodeModel("Light", context);
 
         lightOn = new EndpointBoolean("torch", "Torch");
 

@@ -11,8 +11,17 @@
 #include "mist_follow.h"
 
 /*
-To re-create JNI interface header file:
-javah -classpath ../../../../mistnodeapi/build/intermediates/classes/debug/:/home/jan/Android/Sdk/platforms/android-16/android.jar -o mist_node_api_jni.h fi.ct.mist.mistnodeapi.api.mistNode.MistNodeApi
+To re-create JNI interface:
+
+ 1. Renew header file using javah
+      javah -classpath ../../../../mistnodeapi/build/intermediates/classes/debug/:/home/jan/Android/Sdk/platforms/android-16/android.jar -o mist_node_api_jni.h mist.node.MistNodeApi
+ 2. Fix .c file function names to correspond to new .h file
+ 3. Fix all calls to java from c
+      from:
+        jfieldID invokeCallbackField = (*env)->GetFieldID(env, endpointClass, "invokeCallback", "Lfi/ct/mist/nodeApi/Endpoint$Invokable;");
+      to:
+        jfieldID invokeCallbackField = (*env)->GetFieldID(env, endpointClass, "invokeCallback", "Lmist/node/Endpoint$Invokable;");
+
 */
 #include "mist_node_api_jni.h"
 #include "jni_utils.h"
@@ -177,7 +186,7 @@ static enum mist_error hw_invoke(mist_ep *ep, mist_buf args, mist_buf response) 
  * Method:    updateBool
  * Signature: (Ljava/lang/String;Z)V
  */
-JNIEXPORT void JNICALL Java_fi_ct_mist_mistnodeapi_api_mistNode_MistNodeApi_updateBool
+JNIEXPORT void JNICALL Java_mist_node_MistNodeApi_updateBool
   (JNIEnv *env, jobject java_this, jstring java_epID, jboolean java_newValue) {
     android_wish_printf("in updateBool");
     char *id_str =  (char*) (*env)->GetStringUTFChars(env, java_epID, NULL);
@@ -196,7 +205,7 @@ JNIEXPORT void JNICALL Java_fi_ct_mist_mistnodeapi_api_mistNode_MistNodeApi_upda
  * Method:    updateInt
  * Signature: (Ljava/lang/String;I)V
  */
-JNIEXPORT void JNICALL Java_fi_ct_mist_mistnodeapi_api_mistNode_MistNodeApi_updateInt
+JNIEXPORT void JNICALL Java_mist_node_MistNodeApi_updateInt
   (JNIEnv *env, jobject java_this, jstring java_epID, jint java_newValue) {
     android_wish_printf("in updateInt %i", java_newValue);
     char *id_str =  (char*) (*env)->GetStringUTFChars(env, java_epID, NULL);
@@ -214,7 +223,7 @@ JNIEXPORT void JNICALL Java_fi_ct_mist_mistnodeapi_api_mistNode_MistNodeApi_upda
  * Method:    updateString
  * Signature: (Ljava/lang/String;Ljava/lang/String;)V
  */
-JNIEXPORT void JNICALL Java_fi_ct_mist_mistnodeapi_api_mistNode_MistNodeApi_updateString
+JNIEXPORT void JNICALL Java_mist_node_MistNodeApi_updateString
   (JNIEnv *env, jobject java_this, jstring java_epName, jstring java_newValue) {
     android_wish_printf("in updateString");
 }
@@ -224,7 +233,7 @@ JNIEXPORT void JNICALL Java_fi_ct_mist_mistnodeapi_api_mistNode_MistNodeApi_upda
  * Method:    updateFloat
  * Signature: (Ljava/lang/String;D)V
  */
-JNIEXPORT void JNICALL Java_fi_ct_mist_mistnodeapi_api_mistNode_MistNodeApi_updateFloat
+JNIEXPORT void JNICALL Java_mist_node_MistNodeApi_updateFloat
   (JNIEnv *env, jobject java_this, jstring java_epID, jdouble java_newValue) {
     android_wish_printf("in updateFloat %lf", java_newValue);
     char *id_str =  (char*) (*env)->GetStringUTFChars(env, java_epID, NULL);
@@ -240,9 +249,9 @@ JNIEXPORT void JNICALL Java_fi_ct_mist_mistnodeapi_api_mistNode_MistNodeApi_upda
 /*
  * Class:     fi_ct_mist_mistnodeapi_api_mistNode_MistNodeApi
  * Method:    addEndpoint
- * Signature: (Lfi/ct/mist/mistnodeapi/api/mistNode/Endpoint;)V
+ * Signature: (Lmist/node/Endpoint;)V
  */
-JNIEXPORT void JNICALL Java_fi_ct_mist_mistnodeapi_api_mistNode_MistNodeApi_addEndpoint
+JNIEXPORT void JNICALL Java_mist_node_MistNodeApi_addEndpoint
   (JNIEnv *env, jobject java_this, jobject java_Endpoint) {
     android_wish_printf("in addEndpoint");
 
@@ -325,15 +334,15 @@ JNIEXPORT void JNICALL Java_fi_ct_mist_mistnodeapi_api_mistNode_MistNodeApi_addE
         jobject writableCallbackObject = NULL;
         switch (type) {
         case MIST_TYPE_BOOL:
-            writableCallbackField = (*env)->GetFieldID(env, endpointClass, "writeCallback", "Lfi/ct/mist/mistnodeapi/api/mistNode/EndpointBoolean$Writable;");
+            writableCallbackField = (*env)->GetFieldID(env, endpointClass, "writeCallback", "Lmist/node/EndpointBoolean$Writable;");
             writableCallbackObject = (*env)->GetObjectField(env, java_Endpoint, writableCallbackField);
             break;
         case MIST_TYPE_FLOAT:
-            writableCallbackField = (*env)->GetFieldID(env, endpointClass, "writeCallback", "Lfi/ct/mist/mistnodeapi/api/mistNode/EndpointFloat$Writable;");
+            writableCallbackField = (*env)->GetFieldID(env, endpointClass, "writeCallback", "Lmist/node/EndpointFloat$Writable;");
             writableCallbackObject = (*env)->GetObjectField(env, java_Endpoint, writableCallbackField);
             break;
         case MIST_TYPE_INT:
-            writableCallbackField = (*env)->GetFieldID(env, endpointClass, "writeCallback", "Lfi/ct/mist/mistnodeapi/api/mistNode/EndpointInt$Writable;");
+            writableCallbackField = (*env)->GetFieldID(env, endpointClass, "writeCallback", "Lmist/node/EndpointInt$Writable;");
             writableCallbackObject = (*env)->GetObjectField(env, java_Endpoint, writableCallbackField);
             break;
         case MIST_TYPE_STRING:
@@ -358,7 +367,7 @@ JNIEXPORT void JNICALL Java_fi_ct_mist_mistnodeapi_api_mistNode_MistNodeApi_addE
     if (invokable) {
         WISHDEBUG(LOG_CRITICAL, "is invokable");
          /* Get the Endpoint.Invokable object reference field */
-        jfieldID invokeCallbackField = (*env)->GetFieldID(env, endpointClass, "invokeCallback", "Lfi/ct/mist/mistnodeapi/api/mistNode/Endpoint$Invokable;");
+        jfieldID invokeCallbackField = (*env)->GetFieldID(env, endpointClass, "invokeCallback", "Lmist/node/Endpoint$Invokable;");
         if (invokeCallbackField == NULL) {
             android_wish_printf("Could not get invokablefield");
             return;
@@ -385,7 +394,7 @@ JNIEXPORT void JNICALL Java_fi_ct_mist_mistnodeapi_api_mistNode_MistNodeApi_addE
  * Method:    startMistApp
  * Signature: (Ljava/lang/String;)V
  */
-JNIEXPORT void JNICALL Java_fi_ct_mist_mistnodeapi_api_mistNode_MistNodeApi_startMistApp
+JNIEXPORT void JNICALL Java_mist_node_MistNodeApi_startMistApp
   (JNIEnv *env, jobject java_this, jstring java_appName) {
     android_wish_printf("in startMistApp");
     /* Register a refence to the JVM */

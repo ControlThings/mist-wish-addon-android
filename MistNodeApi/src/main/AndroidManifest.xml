@@ -1,12 +1,12 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
-    package="fi.ct.mist.mistnodeapi">
+    package="mist.node.mistnodeapi">
 
     <uses-permission android:name="android.permission.INTERNET"/>
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
 
     <application android:allowBackup="true" android:label="@string/app_name" android:supportsRtl="true">
         <service
-            android:name="fi.ct.mist.mistnodeapi.Mist"
+            android:name="mist.Mist"
             android:exported="false"
             android:stopWithTask="true"/>
     </application>

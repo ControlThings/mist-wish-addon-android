@@ -1,4 +1,4 @@
-package fi.ct.mist.mistnodeapi.api.mistNode;
+package mist.node;
 
 /**
  * Created by jan on 11/1/16.

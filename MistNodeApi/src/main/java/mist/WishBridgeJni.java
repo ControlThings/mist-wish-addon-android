@@ -1,4 +1,4 @@
-package fi.ct.mist.mistnodeapi;
+package mist;
 
 import android.content.Context;
 import android.util.Log;
