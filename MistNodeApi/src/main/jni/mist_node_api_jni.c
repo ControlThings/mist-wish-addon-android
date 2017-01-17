@@ -174,9 +174,9 @@ static enum mist_error hw_write(mist_ep *ep, void *value) {
     return retval;
 }
 
-static enum mist_error hw_invoke(mist_ep *ep, mist_buf args, mist_buf response) {
+static enum mist_error hw_invoke(mist_ep *ep, mist_buf args) {
     enum mist_error retval = MIST_ERROR;
-    android_wish_printf("in hw_invoke");
+    android_wish_printf("in hw_invoke (NOT IMPLEMENTED)");
 
     return retval;
 }
@@ -362,7 +362,7 @@ JNIEXPORT void JNICALL Java_mist_node_MistNodeApi_addEndpoint
     jfieldID invokableField = (*env)->GetFieldID(env, endpointClass, "invokable", "Z");
     jboolean invokable = (*env)->GetBooleanField(env, java_Endpoint, invokableField);
 
-    enum mist_error (*ep_invoke_fn)(mist_ep* ep, mist_buf args, mist_buf response) = NULL;
+    enum mist_error (*ep_invoke_fn)(mist_ep* ep, mist_buf args) = NULL;
 
     if (invokable) {
         WISHDEBUG(LOG_CRITICAL, "is invokable");
