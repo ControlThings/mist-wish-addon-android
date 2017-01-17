@@ -38,7 +38,7 @@ public class WishFile {
         this._context = context;
     }
 
-    private final int openMode = Context.MODE_WORLD_READABLE | Context.MODE_WORLD_WRITEABLE | Context.MODE_APPEND;
+    private final int openMode = Context.MODE_APPEND;
 
     public int open(String filename) {
 
