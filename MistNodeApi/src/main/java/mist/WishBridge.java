@@ -6,6 +6,7 @@ import android.content.Intent;
 import android.content.ServiceConnection;
 import android.os.Binder;
 import android.os.IBinder;
+import android.os.Parcel;
 import android.os.RemoteException;
 import android.util.Log;
 
@@ -15,6 +16,7 @@ import fi.ct.bridge.CoreBridge;
 class WishBridge {
 
     private final String TAG = "WishBridge";
+    private final int releaseCore = 1;
 
     Context _context;
     WishBridgeJni _jni;
@@ -80,7 +82,15 @@ class WishBridge {
     }
 
 
-
+    private class LocalBinder extends Binder {
+        @Override
+        protected boolean onTransact(int code, Parcel data, Parcel reply, int flags) throws RemoteException {
+            if (code == releaseCore) {
+                _mist.unbindService(mConnection);
+            }
+            return super.onTransact(code, data, reply, flags);
+        }
+    }
 
     private ServiceConnection mConnection = new ServiceConnection() {
         @Override
@@ -88,7 +98,7 @@ class WishBridge {
             coreBridge = CoreBridge.Stub.asInterface(service);
             mBound = true;
             try {
-                coreBridge.registerProcessDeath(new Binder(), _wsid);
+                coreBridge.registerProcessDeath(new LocalBinder(), _wsid);
                 coreBridge.open(bridge);
             } catch (RemoteException e) {
                 Log.d(TAG, "remote exeption in open:");
