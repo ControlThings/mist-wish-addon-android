@@ -148,9 +148,14 @@ class WishBridge {
 
     private AppBridge.Stub bridge = new AppBridge.Stub() {
         @Override
-        public void sendCoreToApp(byte[] data) {
+        public void sendCoreToApp(final byte[] data) {
             Log.d(TAG, "in sendCoreToApp");
-            _jni.receive_core_to_app(data);
+            new Thread(new Runnable() {
+                @Override
+                public void run() {
+                    _jni.receive_core_to_app(data);
+                }
+            }).start();
         }
     };
 
