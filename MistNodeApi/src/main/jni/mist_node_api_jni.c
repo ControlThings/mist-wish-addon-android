@@ -46,7 +46,7 @@ struct endpoint_data {
         bool bool_value;
         double float_value;
         int int_value;
-        char* string_value;
+        char* string_value; /* For strings, we manage the storage ourselves */
     };
     size_t value_length; /* Used for string value, and other types of flexible length */
     enum mist_type type;
