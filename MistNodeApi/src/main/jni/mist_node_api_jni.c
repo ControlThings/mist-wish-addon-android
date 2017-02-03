@@ -48,6 +48,7 @@ struct endpoint_data {
         int int_value;
         char* string_value;
     };
+    size_t value_length; /* Used for string value, and other types of flexible length */
     enum mist_type type;
     jobject invokable_object;
     jobject writable_object;
@@ -84,7 +85,9 @@ static enum mist_error hw_read(mist_ep *ep, void *result) {
             }
             break;
         case MIST_TYPE_STRING:
-            return MIST_ERROR;
+            {
+                memcpy(result, ep_data->string_value, ep_data->value_length);
+            }
             break;
         case MIST_TYPE_INT:
             {
@@ -143,6 +146,22 @@ static enum mist_error hw_write(mist_ep *ep, void *value) {
         }
         break;
     case MIST_TYPE_STRING:
+        {
+            jmethodID writeMethodId = (*my_env)->GetMethodID(my_env, writeCallbackClass, "write", "(Ljava/lang/String;)V");
+            if (writeMethodId == NULL) {
+                WISHDEBUG(LOG_CRITICAL, "Cannot get write method for String value");
+                return MIST_ERROR;
+            }
+            char* str_data = (char *) value;
+            /* Create Java string with new value. Returns local reference. */
+            jstring java_string = (*my_env)->NewStringUTF(my_env, str_data);
+            if (java_string != NULL) {
+                (*my_env)->CallVoidMethod(my_env, ep_data->writable_object, writeMethodId, java_string);
+            }
+            else {
+                WISHDEBUG(LOG_CRITICAL, "Cannot construct Java string in hw_write");
+            }
+        }
         break;
     case MIST_TYPE_INT:
         {
@@ -216,6 +235,7 @@ JNIEXPORT void JNICALL Java_mist_node_MistNodeApi_updateInt
     }
     ep_data->int_value = java_newValue;
     mist_value_changed(model, id_str);
+    (*env)->ReleaseStringUTFChars(env, java_epID, id_str);
 }
 
 /*
@@ -224,8 +244,38 @@ JNIEXPORT void JNICALL Java_mist_node_MistNodeApi_updateInt
  * Signature: (Ljava/lang/String;Ljava/lang/String;)V
  */
 JNIEXPORT void JNICALL Java_mist_node_MistNodeApi_updateString
-  (JNIEnv *env, jobject java_this, jstring java_epName, jstring java_newValue) {
+  (JNIEnv *env, jobject java_this, jstring java_epID, jstring java_newValue) {
     android_wish_printf("in updateString");
+    char *id_str =  (char*) (*env)->GetStringUTFChars(env, java_epID, NULL);
+    struct endpoint_data *ep_data = lookup_ep_data_by_ep_id(id_str);
+    if (ep_data == NULL) {
+        WISHDEBUG(LOG_CRITICAL, "Could not find ep_data");
+    }
+    else {
+        jsize str_len = (*env)->GetStringUTFLength(env, java_newValue);
+        char* str = (char *) (*env)->GetStringUTFChars(env, java_newValue, NULL);
+        size_t str_copy_len = str_len + 1; /* str length + null terminate */
+
+        char* str_copy = malloc(str_copy_len);
+        if (str_copy == NULL) {
+            WISHDEBUG(LOG_CRITICAL, "malloc fail in updateString");
+            return;
+        }
+        memset(str_copy, 0, str_copy_len);
+        memcpy(str_copy, str, str_len);
+
+        /* If ep_data->string_value is non null it means that we have old value. Free it. */
+        if (ep_data->string_value != NULL) {
+            free(ep_data->string_value);
+        }
+        ep_data->string_value = str_copy;
+        ep_data->value_length = str_copy_len;
+
+        mist_value_changed(model, id_str);
+        (*env)->ReleaseStringUTFChars(env, java_newValue, str);
+    }
+
+    (*env)->ReleaseStringUTFChars(env, java_epID, id_str);
 }
 
 /*
@@ -244,6 +294,7 @@ JNIEXPORT void JNICALL Java_mist_node_MistNodeApi_updateFloat
     }
     ep_data->float_value = java_newValue;
     mist_value_changed(model, id_str);
+    (*env)->ReleaseStringUTFChars(env, java_epID, id_str);
 }
 
 /*
@@ -346,6 +397,8 @@ JNIEXPORT void JNICALL Java_mist_node_MistNodeApi_addEndpoint
             writableCallbackObject = (*env)->GetObjectField(env, java_Endpoint, writableCallbackField);
             break;
         case MIST_TYPE_STRING:
+            writableCallbackField = (*env)->GetFieldID(env, endpointClass, "writeCallback", "Lmist/node/EndpointString$Writable;");
+            writableCallbackObject = (*env)->GetObjectField(env, java_Endpoint, writableCallbackField);
             break;
         }
         if (writableCallbackObject == NULL) {
@@ -444,12 +497,6 @@ JNIEXPORT void JNICALL Java_mist_node_MistNodeApi_startMistApp
 
     /* The app will login to core when the Bridge connects, this happens via the wish_app_connected(wish_app_t *app, bool connected) function */
 }
-
-#if 0
-void mist_follow_task_signal(void) {
-    mist_follow_task();
-}
-#endif
 
 wish_app_t *get_mist_node_app(void) {
     return app;

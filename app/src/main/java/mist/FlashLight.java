@@ -5,7 +5,10 @@ import android.content.pm.PackageManager;
 import android.hardware.Camera;
 import android.hardware.camera2.CameraManager;
 import android.os.Build;
+import android.util.Log;
 
+import mist.node.EndpointInt;
+import mist.node.EndpointString;
 import mist.node.NodeModel;
 import mist.node.EndpointBoolean;
 
@@ -32,6 +35,8 @@ public class FlashLight {
     NodeModel model;
     // Mist endpoint
     private EndpointBoolean lightOn;
+    private EndpointString myStringEndpoint;
+    private EndpointInt myIntEndpoint;
 
 
     public FlashLight(Context context) {
@@ -56,7 +61,34 @@ public class FlashLight {
             }
         });
 
+
+
+
+        myStringEndpoint = new EndpointString("test_str", "Test String");
+        myStringEndpoint.setWritable(new EndpointString.Writable() {
+            @Override
+            public void write(String newValue) {
+                Log.d(TAG, "Writing string here:" + newValue);
+                myStringEndpoint.update(newValue);
+            }
+        });
+        myStringEndpoint.setReadable(true);
+        lightOn.addNext(myStringEndpoint);
+
+        myIntEndpoint = new EndpointInt("test_int", "Test int");
+        myIntEndpoint.setWritable(new EndpointInt.Writable() {
+            @Override
+            public void write(int newValue) {
+                Log.d(TAG, "Writing string here:" + newValue);
+                myIntEndpoint.update(newValue);
+            }
+        });
+        myIntEndpoint.setReadable(true);
+        lightOn.addNext(myIntEndpoint);
+
+
         model.setRootEndpoint(lightOn);
+
     }
 
     private void turnOnFlashLight() {
