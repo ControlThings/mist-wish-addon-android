@@ -1,7 +1,7 @@
 /.gradle
 /.idea
 /build
-*.iml
+/*.iml
 /local.properties
 /local.properties
 MistNodeApi/src/main/obj
