@@ -1,0 +1,3 @@
+[submodule "MistNodeApi/src/main/jni/mist-c99"]
+	path = MistNodeApi/src/main/jni/mist-c99
+	url = foremost.cto.fi:/git/mist-c99
