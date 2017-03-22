@@ -1,15 +1,9 @@
 /.gradle
 /.idea
 /build
-/*.iml
+*.iml
 /local.properties
 /local.properties
 MistNodeApi/src/main/obj
-MistNodeApi/src/main/jni/mist
-MistNodeApi/src/main/jni/wish
-MistNodeApi/src/main/jni/wish_app
-MistNodeApi/src/main/jni/wish_app_deps
-MistNodeApi/src/main/jni/wish_rpc
-MistNodeApi/src/main/jni/deps
 MistNodeApi/src/main/libs/
 

@@ -64,7 +64,7 @@ public class FlashLight {
 
 
 
-        myStringEndpoint = new EndpointString("test_str", "Test String");
+        myStringEndpoint = new EndpointString("str", "Test String");
         myStringEndpoint.setWritable(new EndpointString.Writable() {
             @Override
             public void write(String newValue) {
@@ -75,7 +75,7 @@ public class FlashLight {
         myStringEndpoint.setReadable(true);
         lightOn.addNext(myStringEndpoint);
 
-        myIntEndpoint = new EndpointInt("test_int", "Test int");
+        myIntEndpoint = new EndpointInt("int", "Test int");
         myIntEndpoint.setWritable(new EndpointInt.Writable() {
             @Override
             public void write(int newValue) {
