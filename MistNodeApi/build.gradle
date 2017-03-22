@@ -1,24 +1,83 @@
 apply plugin: 'com.android.library'
 
+def getGitVersion = { ->
+    def stdout = new ByteArrayOutputStream()
+
+    exec {
+        commandLine 'git', 'describe', '--abbrev=4', '--always', '--tags'
+        standardOutput = stdout
+    }
+
+
+    return stdout.toString().trim()
+}
+
+def getGitClean = { ->
+
+    def stdout = new ByteArrayOutputStream()
+    exec {
+        commandLine 'git', 'status', '--porcelain'
+        standardOutput = stdout
+
+    }
+    if ("${stdout.size()}" > 0) {
+        return "-d"
+    } else {
+        return "-c"
+    }
+}
+
 android {
     compileSdkVersion 23
     buildToolsVersion '25.0.0'
 
     publishNonDefault true
 
-    defaultConfig {
-        minSdkVersion 16
-        targetSdkVersion 23
-        versionCode 1
-        versionName "1.0"
+    def versionPropsFile = file('version.properties')
+    if (versionPropsFile.canRead()) {
+        def Properties versionProps = new Properties()
+        versionProps.load(new FileInputStream(versionPropsFile))
+        def version_code = versionProps['VERSION_CODE'].toInteger()
+        def version_name = versionProps['VERSION_NAME']
+        def git_version = getGitVersion
+        defaultConfig {
+            minSdkVersion 16
+            targetSdkVersion 23
+            versionCode 1
+            versionName "1.0"
 
-        testInstrumentationRunner "android.support.test.runner.AndroidJUnitRunner"
+            testInstrumentationRunner "android.support.test.runner.AndroidJUnitRunner"
 
-    }
-    buildTypes {
-        release {
-            minifyEnabled false
-            proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
+        }
+        buildTypes {
+            release {
+                minifyEnabled false
+                proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
+                libraryVariants.all { variant ->
+                    variant.outputs.each { output ->
+                        def outputFile = output.outputFile
+                        if (outputFile != null && outputFile.name.endsWith('.aar')) {
+                            def fileName = "${archivesBaseName}-${git_version}.aar"
+                            output.outputFile = new File(outputFile.parent, fileName)
+                        }
+                    }
+                }
+            }
+            /*
+            debug {
+                minifyEnabled false
+                proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
+                libraryVariants.all { variant ->
+                    variant.outputs.each { output ->
+                        def outputFile = output.outputFile
+                        if (outputFile != null && outputFile.name.endsWith('.aar')) {
+                            def fileName = "${archivesBaseName}-${git_version}-debug.aar"
+                            output.outputFile = new File(outputFile.parent, fileName)
+                        }
+                    }
+                }
+            }
+            */
         }
     }
     sourceSets {
