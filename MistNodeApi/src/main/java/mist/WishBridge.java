@@ -98,8 +98,7 @@ class WishBridge {
             coreBridge = CoreBridge.Stub.asInterface(service);
             mBound = true;
             try {
-                coreBridge.registerProcessDeath(new LocalBinder(), _wsid);
-                coreBridge.open(bridge);
+                coreBridge.register(new LocalBinder(), _wsid, bridge);
             } catch (RemoteException e) {
                 Log.d(TAG, "remote exeption in open:");
             }
