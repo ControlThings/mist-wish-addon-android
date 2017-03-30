@@ -33,44 +33,17 @@ class WishBridge {
     private byte[] _wsid;
 
     void startWish() {
-
-        /*
-        // download wish app if it dosn't exist.
-        try {
-            _context.getPackageManager().getPackageInfo("fi.ct.wish", PackageManager.GET_ACTIVITIES);
-        } catch (PackageManager.NameNotFoundException e) {
-
-
-
-
-            Intent intent = new Intent(Intent.ACTION_VIEW);
-            intent.setDataAndType(Uri.parse("Android/data/com.mycompany.android.games/temp/temp.apk"), "application/vnd.android.package-archive");
-            intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK); // without this flag android returned a intent error!
-
-            try {
-                PendingIntent contentIntent = PendingIntent.getActivity(_context, 0, intent, 0);
-                contentIntent.send();
-            } catch (PendingIntent.CanceledException err) {
-                Log.d(TAG, "error: " + err);
-            }
-
-
-
-            //_context.startActivity(intent);
-        }
-*/
-
         wish = new Intent();
         wish.setComponent(new ComponentName("fi.ct.wish", "fi.ct.wish.Wish"));
-        /* Save WSID to the Intent, so that Wish core's end of the bridge can see the difference between Intent's of different Wish services */
+
         if (_jni.wsid != null) {
-            //wish.putExtra("EXTRA_WSID", _jni.wsid);
             _wsid = _jni.wsid;
         } else {
-            Log.d(TAG, "WARNING FAIL cannot add EXTRA_WSID because wsid is null!");
+            Log.d(TAG, "WARNING FAIL wsid is null!");   
         }
+
         _context.startService(wish);
-        this._context.bindService(wish, mConnection, 0); //Context.BIND_AUTO_CREATE
+        this._context.bindService(wish, mConnection, 0);
     }
 
     WishBridge(Context context, WishBridgeJni jni, Mist mist) {
@@ -78,7 +51,7 @@ class WishBridge {
         this._jni = jni;
         this._mist = mist;
 
-        //startWish();  //Note: Don't start wish service here, because we need to first get the wsid. Let WishBridgeJni start the service instead, after wsid is saved.
+        //Note: Don't start wish service here, because we need to first get the wsid. Let WishBridgeJni start the service instead, after wsid is saved.
     }
 
 
@@ -140,7 +113,6 @@ class WishBridge {
 
 
         } catch (RemoteException e) {
-            //e.printStackTrace();
             Log.v(TAG, "RemoteException occurred in receiveAppToCore");
         }
     }
