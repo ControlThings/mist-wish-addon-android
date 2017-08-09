@@ -19,7 +19,6 @@
 #include "wish_core_api.h"
 #include "app_service_ipc.h"
 #include "bson.h"
-#include "cbson.h"
 
 #include "jni_utils.h"
 #include "mist_node_api_helper.h"

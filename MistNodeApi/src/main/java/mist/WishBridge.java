@@ -39,7 +39,7 @@ class WishBridge {
         if (_jni.wsid != null) {
             _wsid = _jni.wsid;
         } else {
-            Log.d(TAG, "WARNING FAIL wsid is null!");   
+            Log.d(TAG, "WARNING FAIL wsid is null!");
         }
 
         _context.startService(wish);

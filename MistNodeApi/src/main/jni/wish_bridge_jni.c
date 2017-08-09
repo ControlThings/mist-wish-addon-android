@@ -67,7 +67,7 @@ uint8_t my_wsid[WISH_WSID_LEN];
 /** Implementation of send_app_to_core.
  * It will transform the arguments into Java objects and calls receiveAppToCore defined in
  */
-void send_app_to_core(uint8_t *wsid, uint8_t *data, size_t len) {
+void send_app_to_core(uint8_t *wsid, const uint8_t *data, size_t len) {
     android_wish_printf("Send app to core");
 
     memcpy(my_wsid, wsid, WISH_WSID_LEN);
