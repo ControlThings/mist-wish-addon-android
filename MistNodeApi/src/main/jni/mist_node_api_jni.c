@@ -42,14 +42,6 @@ static jobject mistNodeApiInstance;
 
 struct endpoint_data {
     char *endpoint_id;
-    union {
-        bool bool_value;
-        double float_value;
-        int int_value;
-        char* string_value; /* For strings, we manage the storage ourselves */
-    };
-    size_t value_length; /* Used for string value, and other types of flexible length */
-    enum mist_type type;
     jobject invokable_object;
     jobject writable_object;
     struct endpoint_data *next;
@@ -67,7 +59,7 @@ static struct endpoint_data *lookup_ep_data_by_ep_id(char *ep_id) {
     return NULL;
 }
 
-static enum mist_error hw_read(mist_ep *ep, void *result) {
+static enum mist_error hw_read(mist_ep *ep, mist_buf *result) {
     enum mist_error retval = MIST_ERROR;
     android_wish_printf("in hw_read");
 
@@ -77,40 +69,13 @@ static enum mist_error hw_read(mist_ep *ep, void *result) {
         return MIST_ERROR;
     }
 
-    switch (ep->type) {
-        case MIST_TYPE_BOOL:
-            {
-                bool *data = result;
-                *data = ep_data->bool_value;
-            }
-            break;
-        case MIST_TYPE_STRING:
-            {
-                memcpy(result, ep_data->string_value, ep_data->value_length);
-            }
-            break;
-        case MIST_TYPE_INT:
-            {
-                int *data = result;
-                *data = ep_data->int_value;
-            }
-            break;
-        case MIST_TYPE_FLOAT:
-            {
-                double *data = result;
-                *data = ep_data->float_value;
-            }
-            break;
-        default:
-            return MIST_ERROR;
-            break;
-    }
-
+    result->base = ep->data.base;
+    result->len = ep->data.len;
     retval = MIST_NO_ERROR;
     return retval;
 }
 
-static enum mist_error hw_write(mist_ep *ep, void *value) {
+static enum mist_error hw_write(mist_ep *ep, mist_buf value) {
     enum mist_error retval = MIST_ERROR;
     android_wish_printf("in hw_write");
 
@@ -141,7 +106,7 @@ static enum mist_error hw_write(mist_ep *ep, void *value) {
                 WISHDEBUG(LOG_CRITICAL, "Cannot get write method");
                 return MIST_ERROR;
             }
-            bool bool_data = *((bool *)value);
+            bool bool_data = *((bool *)value.base);
             (*my_env)->CallVoidMethod(my_env, ep_data->writable_object, writeMethodId, bool_data);
         }
         break;
@@ -152,7 +117,7 @@ static enum mist_error hw_write(mist_ep *ep, void *value) {
                 WISHDEBUG(LOG_CRITICAL, "Cannot get write method for String value");
                 return MIST_ERROR;
             }
-            char* str_data = (char *) value;
+            char *str_data = (char *) value.base;
             /* Create Java string with new value. Returns local reference. */
             jstring java_string = (*my_env)->NewStringUTF(my_env, str_data);
             if (java_string != NULL) {
@@ -170,7 +135,7 @@ static enum mist_error hw_write(mist_ep *ep, void *value) {
                 WISHDEBUG(LOG_CRITICAL, "Cannot get write method");
                 return MIST_ERROR;
             }
-            int data = *((int *)value);
+            int data = *((int *)value.base);
             (*my_env)->CallVoidMethod(my_env, ep_data->writable_object, writeMethodId, data);
         }
         break;
@@ -181,7 +146,7 @@ static enum mist_error hw_write(mist_ep *ep, void *value) {
                 WISHDEBUG(LOG_CRITICAL, "Cannot get write method");
                 return MIST_ERROR;
             }
-            double data = *((double *)value);
+            double data = *((double *)value.base);
             (*my_env)->CallVoidMethod(my_env, ep_data->writable_object, writeMethodId, data);
         }
         break;
@@ -214,7 +179,18 @@ JNIEXPORT void JNICALL Java_mist_node_MistNodeApi_updateBool
         WISHDEBUG(LOG_CRITICAL, "Could not find ep_data");
         return;
     }
-    ep_data->bool_value = java_newValue;
+
+    mist_ep *ep = NULL;
+    if (MIST_NO_ERROR != mist_find_endpoint_by_name(model, id_str, &ep)) {
+        WISHDEBUG(LOG_CRITICAL, "Could not find mist_ep by id!");
+        return;
+    }
+    if (ep == NULL) {
+        WISHDEBUG(LOG_CRITICAL, "mist_ep unexpectedly NULL!");
+        return;
+    }
+
+    memcpy(ep->data.base, &java_newValue, sizeof(jboolean));
     mist_value_changed(model, id_str);
     (*env)->ReleaseStringUTFChars(env, java_epID, id_str);
 }
@@ -233,7 +209,17 @@ JNIEXPORT void JNICALL Java_mist_node_MistNodeApi_updateInt
         WISHDEBUG(LOG_CRITICAL, "Could not find ep_data");
         return;
     }
-    ep_data->int_value = java_newValue;
+    mist_ep *ep = NULL;
+    if (MIST_NO_ERROR != mist_find_endpoint_by_name(model, id_str, &ep)) {
+        WISHDEBUG(LOG_CRITICAL, "Could not find mist_ep by id!");
+        return;
+    }
+    if (ep == NULL) {
+        WISHDEBUG(LOG_CRITICAL, "mist_ep unexpectedly NULL!");
+        return;
+    }
+
+    memcpy(ep->data.base, &java_newValue, sizeof(int));
     mist_value_changed(model, id_str);
     (*env)->ReleaseStringUTFChars(env, java_epID, id_str);
 }
@@ -264,12 +250,23 @@ JNIEXPORT void JNICALL Java_mist_node_MistNodeApi_updateString
         memset(str_copy, 0, str_copy_len);
         memcpy(str_copy, str, str_len);
 
-        /* If ep_data->string_value is non null it means that we have old value. Free it. */
-        if (ep_data->string_value != NULL) {
-            free(ep_data->string_value);
+        mist_ep *ep = NULL;
+        if (MIST_NO_ERROR != mist_find_endpoint_by_name(model, id_str, &ep)) {
+            WISHDEBUG(LOG_CRITICAL, "Could not find mist_ep by id!");
+            return;
         }
-        ep_data->string_value = str_copy;
-        ep_data->value_length = str_copy_len;
+        if (ep == NULL) {
+            WISHDEBUG(LOG_CRITICAL, "mist_ep unexpectedly NULL!");
+            return;
+        }
+
+        /* If ep_data->string_value is non null it means that we have old value. Free it. */
+
+        if (ep->data.base != NULL) {
+            free(ep->data.base);
+        }
+        ep->data.base = str_copy;
+        ep->data.len = str_copy_len;
 
         mist_value_changed(model, id_str);
         (*env)->ReleaseStringUTFChars(env, java_newValue, str);
@@ -292,7 +289,17 @@ JNIEXPORT void JNICALL Java_mist_node_MistNodeApi_updateFloat
         WISHDEBUG(LOG_CRITICAL, "Could not find ep_data");
         return;
     }
-    ep_data->float_value = java_newValue;
+    mist_ep *ep = NULL;
+    if (MIST_NO_ERROR != mist_find_endpoint_by_name(model, id_str, &ep)) {
+        WISHDEBUG(LOG_CRITICAL, "Could not find mist_ep by id!");
+        return;
+    }
+    if (ep == NULL) {
+        WISHDEBUG(LOG_CRITICAL, "mist_ep unexpectedly NULL!");
+        return;
+    }
+
+    memcpy(ep->data.base, &java_newValue, sizeof(float));
     mist_value_changed(model, id_str);
     (*env)->ReleaseStringUTFChars(env, java_epID, id_str);
 }
@@ -330,6 +337,48 @@ JNIEXPORT void JNICALL Java_mist_node_MistNodeApi_addEndpoint
 
     WISHDEBUG(LOG_CRITICAL, "addEndpoint: %s", id_str);
 
+    /* Get the parent endpoint's id */
+    char *parent_id_str = NULL;
+    jobject parentEpIdString = NULL;
+    jfieldID parentEpField = (*env)->GetFieldID(env, endpointClass, "parent", "Lmist/node/Endpoint;");
+    if (parentEpField != NULL) {
+        jobject parentEndpoint = (*env)->GetObjectField(env, java_Endpoint, parentEpField);
+        if (parentEndpoint != NULL) {
+            jclass parentEndpointClass = (*env)->GetObjectClass(env, parentEndpoint);
+            if (parentEndpointClass != NULL) {
+                jfieldID parentEpIdField = (*env)->GetFieldID(env, parentEndpointClass, "id", "Ljava/lang/String;");
+
+                if (parentEpIdField != NULL) {
+                    parentEpIdString = (*env)->GetObjectField(env, parentEndpoint, parentEpIdField);
+                    if (parentEpIdString != NULL) {
+                        parent_id_str  =  (char*) (*env)->GetStringUTFChars(env, parentEpIdString, NULL);
+                    }
+                    else {
+                        android_wish_printf("Could not get parent Endpoint's id object");
+                        return;
+                    }
+                }
+                else {
+                    android_wish_printf("Could not get the parent Endpoint's id field");
+                    return;
+                }
+            }
+            else {
+                android_wish_printf("Could not get the Endpoint class corresponding to the parent");
+                return;
+            }
+        }
+        else {
+            android_wish_printf("Could not get the parent object from Endpoint");
+            return;
+        }
+
+    }
+    else {
+        android_wish_printf("Could not find the parent field from Endpoint");
+        return;
+    }
+
     /* Get "label" field, a String */
 
     jfieldID labelField = (*env)->GetFieldID(env, endpointClass, "label", "Ljava/lang/String;");
@@ -349,7 +398,7 @@ JNIEXPORT void JNICALL Java_mist_node_MistNodeApi_addEndpoint
     jfieldID typeField = (*env)->GetFieldID(env, endpointClass, "type", "I");
     jint type = (*env)->GetIntField(env, java_Endpoint, typeField);
     WISHDEBUG(LOG_CRITICAL, "addEndpoint: type %i", type);
-    ep_data->type = type;
+    //ep_data->type = type;
 
     /* Get "unit" field, a String */
 
@@ -368,7 +417,7 @@ JNIEXPORT void JNICALL Java_mist_node_MistNodeApi_addEndpoint
     jfieldID readableField = (*env)->GetFieldID(env, endpointClass, "readable", "Z");
     jboolean readable = (*env)->GetBooleanField(env, java_Endpoint, readableField);
 
-    enum mist_error (*ep_read_fn)(mist_ep* ep, void* result) = NULL;
+    enum mist_error (*ep_read_fn)(mist_ep* ep, mist_buf* result) = NULL;
     if (readable) {
         WISHDEBUG(LOG_CRITICAL, "is readable");
         ep_read_fn = hw_read;
@@ -377,7 +426,7 @@ JNIEXPORT void JNICALL Java_mist_node_MistNodeApi_addEndpoint
     jfieldID writableField = (*env)->GetFieldID(env, endpointClass, "writable", "Z");
     jboolean writable = (*env)->GetBooleanField(env, java_Endpoint, writableField);
 
-    enum mist_error (*ep_write_fn)(mist_ep* ep, void* value) = NULL;
+    enum mist_error (*ep_write_fn)(mist_ep* ep, mist_buf value) = NULL;
     /* Get the relevant Endpoint<type>.Writable object reference */
     if (writable) {
         WISHDEBUG(LOG_CRITICAL, "is writable");
@@ -433,13 +482,74 @@ JNIEXPORT void JNICALL Java_mist_node_MistNodeApi_addEndpoint
 
     /* Actually add the endpoint */
 
-    mist_add_endpoint(model, id_str, label_str, type, unit_str, ep_read_fn, ep_write_fn, ep_invoke_fn);
+    //mist_add_endpoint(model, id_str, label_str, type, unit_str, ep_read_fn, ep_write_fn, ep_invoke_fn);
+
+
+    // allocate a new endpoint and space for data
+    mist_ep* ep = (mist_ep*) malloc(sizeof(mist_ep));
+    if (ep == NULL) {
+        android_wish_printf("Out of memory when allocating mist_ep");
+        return;
+    }
+    memset(ep, 0, sizeof(mist_ep));
+    ep->data.base = (char*) malloc(8);
+    ep->data.len = 8;
+    if (ep->data.base == NULL) {
+        android_wish_printf("Out of memory when allocating mist_ep data backing");
+        free(ep);
+        return;
+    }
+    memset(ep->data.base, 0, 8);
+
+    ep->id = strdup(id_str);
+    ep->label = strdup(label_str);
+    ep->type = type;
+
+    switch (type) {
+    case MIST_TYPE_FLOAT:
+        *((double*) ep->data.base) = 0.0;
+        break;
+    case MIST_TYPE_INT:
+        *((int*) ep->data.base) = 0;
+        break;
+    case MIST_TYPE_BOOL:
+        *((bool*) ep->data.base) = false;
+        break;
+    case MIST_TYPE_INVOKE:
+         android_wish_printf("Invocables are not supported at this time");
+    case MIST_TYPE_STRING:
+        free(ep->data.base);
+        ep->data.base = NULL;
+        ep->data.len = 0;
+        break;
+    default:
+        android_wish_printf("");
+        break;
+    }
+
+    if (readable) { ep->read = hw_read; }
+    if (writable) { ep->write = hw_write; }
+    if (invokable) { ep->invoke = hw_invoke; } //hw_invoke_function;
+    ep->unit = NULL;
+    ep->next = NULL;
+    ep->prev = NULL;
+    ep->dirty = false;
+    ep->scaling = NULL;
+
+    //char* parent = endpoint_path_from_model(parent_id_str);
+
+    mist_add_ep(model, parent_id_str, ep);
+
     LL_APPEND(endpoint_head, ep_data);
 
-    /* Clean up the (temporary) references we created */
+    /* Clean up the (temporary) references we've created */
     (*env)->ReleaseStringUTFChars(env, idString, id_str);
-    (*env)->ReleaseStringUTFChars(env, idString, label_str);
-    (*env)->ReleaseStringUTFChars(env, idString, unit_str);
+    if (parent_id_str != NULL) {
+        (*env)->ReleaseStringUTFChars(env, parentEpIdString, parent_id_str);
+    }
+    (*env)->ReleaseStringUTFChars(env, labelString, label_str);
+    (*env)->ReleaseStringUTFChars(env, unitString, unit_str);
+
 }
 
 /*
