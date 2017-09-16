@@ -37,11 +37,7 @@ static struct mist_model *model;
 static wish_app_t *app;
 static jobject mistNodeApiInstance;
 
-
-
-
 struct endpoint_data {
-    //char *endpoint_id;
     mist_ep *ep;
     jobject invokable_object;
     jobject writable_object;
@@ -182,15 +178,8 @@ JNIEXPORT void JNICALL Java_mist_node_MistNodeApi_updateBool
         return;
     }
 
-#if 0
-    mist_ep *ep = NULL;
-    if (MIST_NO_ERROR != mist_find_endpoint_by_name(model, id_str, &ep)) {
-        WISHDEBUG(LOG_CRITICAL, "Could not find mist_ep by id!");
-        return;
-    }
-#else
     mist_ep *ep = ep_data->ep;
-#endif
+
     if (ep == NULL) {
         WISHDEBUG(LOG_CRITICAL, "mist_ep unexpectedly NULL!");
         return;
@@ -216,21 +205,15 @@ JNIEXPORT void JNICALL Java_mist_node_MistNodeApi_updateInt
         WISHDEBUG(LOG_CRITICAL, "Could not find ep_data");
         return;
     }
-#if 0
-    mist_ep *ep = NULL;
-    if (MIST_NO_ERROR != mist_find_endpoint_by_name(model, id_str, &ep)) {
-        WISHDEBUG(LOG_CRITICAL, "Could not find mist_ep by id!");
-        return;
-    }
-#else
+
     mist_ep *ep = ep_data->ep;
-#endif
+
     if (ep == NULL) {
         WISHDEBUG(LOG_CRITICAL, "mist_ep unexpectedly NULL!");
         return;
     }
 
-    memcpy(ep->data.base, &java_newValue, sizeof(int));
+    memcpy(ep->data.base, &java_newValue, sizeof(jint));
     mist_value_changed(model, id_str);
     (*env)->ReleaseStringUTFChars(env, java_epID, id_str);
     android_wish_printf("exiting updateInt");
@@ -263,15 +246,7 @@ JNIEXPORT void JNICALL Java_mist_node_MistNodeApi_updateString
         memset(str_copy, 0, str_copy_len);
         memcpy(str_copy, str, str_len);
 
-#if 0
-        mist_ep *ep = NULL;
-        if (MIST_NO_ERROR != mist_find_endpoint_by_name(model, id_str, &ep)) { //This is the point where it fails when you deal with nested mist.name ep
-            android_wish_printf("Could not find mist_ep by id!");
-            return;
-        }
-#else
         mist_ep *ep = ep_data->ep;
-#endif
         if (ep == NULL) {
             android_wish_printf("mist_ep unexpectedly NULL!");
             return;
@@ -310,21 +285,14 @@ JNIEXPORT void JNICALL Java_mist_node_MistNodeApi_updateFloat
         WISHDEBUG(LOG_CRITICAL, "Could not find ep_data");
         return;
     }
-#if 0
-    mist_ep *ep = NULL;
-    if (MIST_NO_ERROR != mist_find_endpoint_by_name(model, id_str, &ep)) {
-        WISHDEBUG(LOG_CRITICAL, "Could not find mist_ep by id!");
-        return;
-    }
-#else
+
     mist_ep *ep = ep_data->ep;
-#endif
     if (ep == NULL) {
         WISHDEBUG(LOG_CRITICAL, "mist_ep unexpectedly NULL!");
         return;
     }
 
-    memcpy(ep->data.base, &java_newValue, sizeof(float));
+    memcpy(ep->data.base, &java_newValue, sizeof(jdouble));
     mist_value_changed(model, id_str);
     (*env)->ReleaseStringUTFChars(env, java_epID, id_str);
     android_wish_printf("exiting updateFloat");
@@ -359,7 +327,6 @@ JNIEXPORT void JNICALL Java_mist_node_MistNodeApi_addEndpoint
         android_wish_printf("Could not get idString");
     }
     char *id_str =  (char*) (*env)->GetStringUTFChars(env, idString, NULL);
-    //ep_data->endpoint_id = strdup(id_str);
 
     android_wish_printf("addEndpoint: %s", id_str);
 
@@ -508,10 +475,7 @@ JNIEXPORT void JNICALL Java_mist_node_MistNodeApi_addEndpoint
         }
     }
 
-    /* Actually add the endpoint */
-
-    //mist_add_endpoint(model, id_str, label_str, type, unit_str, ep_read_fn, ep_write_fn, ep_invoke_fn);
-
+    /* Actually add the endpoint to mist lib */
 
     // allocate a new endpoint and space for data
     mist_ep* ep = (mist_ep*) malloc(sizeof(mist_ep));
