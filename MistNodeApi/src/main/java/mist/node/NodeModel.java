@@ -22,8 +22,17 @@ public class NodeModel {
         /* FIXME Check that the mist app was started correctly */
     }
 
-    public void addChildEndpoint(Endpoint parent) {
-        /* FIXME unimplemented */
+    private void addChildEndpoint(Endpoint ep) {
+        mistNodeApi.addEndpoint(ep);
+        /*
+        do {
+            mistNodeApi.addEndpoint(ep);
+            if (ep.getFirstChild() != null) {
+                addChildEndpoint(ep.getFirstChild());
+            }
+            ep = ep.getNext();
+        } while (ep != null);
+        */
     }
 
     public void setRootEndpoint(Endpoint root) {
@@ -35,6 +44,9 @@ public class NodeModel {
         Endpoint ep = root;
         do {
             mistNodeApi.addEndpoint(ep);
+            if (ep.getFirstChild() != null) {
+                addChildEndpoint(ep.getFirstChild());
+            }
             ep = ep.getNext();
         } while (ep != null);
     }

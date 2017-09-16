@@ -22,6 +22,8 @@ class Endpoint {
     private Endpoint firstChild;
     private Endpoint parent;
 
+    public Endpoint getFirstChild() { return firstChild; }
+
     private String id;
     private String label;
     private String unit;

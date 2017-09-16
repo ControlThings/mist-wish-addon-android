@@ -61,7 +61,7 @@ static struct endpoint_data *lookup_ep_data_by_ep_id(char *ep_id) {
 
 static enum mist_error hw_read(mist_ep *ep, mist_buf *result) {
     enum mist_error retval = MIST_ERROR;
-    android_wish_printf("in hw_read");
+    android_wish_printf("in hw_read, ep %s", ep->id);
 
     struct endpoint_data *ep_data = lookup_ep_data_by_ep_id(ep->id);
     if (ep_data == NULL) {
@@ -72,6 +72,7 @@ static enum mist_error hw_read(mist_ep *ep, mist_buf *result) {
     result->base = ep->data.base;
     result->len = ep->data.len;
     retval = MIST_NO_ERROR;
+    android_wish_printf("exiting hw_read, ep %s", ep->id);
     return retval;
 }
 
@@ -193,6 +194,7 @@ JNIEXPORT void JNICALL Java_mist_node_MistNodeApi_updateBool
     memcpy(ep->data.base, &java_newValue, sizeof(jboolean));
     mist_value_changed(model, id_str);
     (*env)->ReleaseStringUTFChars(env, java_epID, id_str);
+    android_wish_printf("exiting updateBool");
 }
 
 /*
@@ -222,6 +224,7 @@ JNIEXPORT void JNICALL Java_mist_node_MistNodeApi_updateInt
     memcpy(ep->data.base, &java_newValue, sizeof(int));
     mist_value_changed(model, id_str);
     (*env)->ReleaseStringUTFChars(env, java_epID, id_str);
+    android_wish_printf("exiting updateInt");
 }
 
 /*
@@ -233,9 +236,10 @@ JNIEXPORT void JNICALL Java_mist_node_MistNodeApi_updateString
   (JNIEnv *env, jobject java_this, jstring java_epID, jstring java_newValue) {
     android_wish_printf("in updateString");
     char *id_str =  (char*) (*env)->GetStringUTFChars(env, java_epID, NULL);
+    android_wish_printf("updateString ep is %s", id_str);
     struct endpoint_data *ep_data = lookup_ep_data_by_ep_id(id_str);
     if (ep_data == NULL) {
-        WISHDEBUG(LOG_CRITICAL, "Could not find ep_data");
+        android_wish_printf("Could not find ep_data");
     }
     else {
         jsize str_len = (*env)->GetStringUTFLength(env, java_newValue);
@@ -244,19 +248,19 @@ JNIEXPORT void JNICALL Java_mist_node_MistNodeApi_updateString
 
         char* str_copy = malloc(str_copy_len);
         if (str_copy == NULL) {
-            WISHDEBUG(LOG_CRITICAL, "malloc fail in updateString");
+            android_wish_printf("malloc fail in updateString");
             return;
         }
         memset(str_copy, 0, str_copy_len);
         memcpy(str_copy, str, str_len);
 
         mist_ep *ep = NULL;
-        if (MIST_NO_ERROR != mist_find_endpoint_by_name(model, id_str, &ep)) {
-            WISHDEBUG(LOG_CRITICAL, "Could not find mist_ep by id!");
+        if (MIST_NO_ERROR != mist_find_endpoint_by_name(model, id_str, &ep)) { //This is the point where it fails when you deal with nested mist.name ep
+            android_wish_printf("Could not find mist_ep by id!");
             return;
         }
         if (ep == NULL) {
-            WISHDEBUG(LOG_CRITICAL, "mist_ep unexpectedly NULL!");
+            android_wish_printf("mist_ep unexpectedly NULL!");
             return;
         }
 
@@ -268,11 +272,14 @@ JNIEXPORT void JNICALL Java_mist_node_MistNodeApi_updateString
         ep->data.base = str_copy;
         ep->data.len = str_copy_len;
 
+        android_wish_printf("called mist_value_changed");
         mist_value_changed(model, id_str);
+        android_wish_printf("returned from mist_value_chanded");
         (*env)->ReleaseStringUTFChars(env, java_newValue, str);
     }
 
     (*env)->ReleaseStringUTFChars(env, java_epID, id_str);
+    android_wish_printf("exiting updateString");
 }
 
 /*
@@ -302,6 +309,7 @@ JNIEXPORT void JNICALL Java_mist_node_MistNodeApi_updateFloat
     memcpy(ep->data.base, &java_newValue, sizeof(float));
     mist_value_changed(model, id_str);
     (*env)->ReleaseStringUTFChars(env, java_epID, id_str);
+    android_wish_printf("exiting updateFloat");
 }
 
 /*
@@ -335,7 +343,7 @@ JNIEXPORT void JNICALL Java_mist_node_MistNodeApi_addEndpoint
     char *id_str =  (char*) (*env)->GetStringUTFChars(env, idString, NULL);
     ep_data->endpoint_id = strdup(id_str);
 
-    WISHDEBUG(LOG_CRITICAL, "addEndpoint: %s", id_str);
+    android_wish_printf("addEndpoint: %s", id_str);
 
     /* Get the parent endpoint's id */
     char *parent_id_str = NULL;
@@ -369,14 +377,17 @@ JNIEXPORT void JNICALL Java_mist_node_MistNodeApi_addEndpoint
             }
         }
         else {
-            android_wish_printf("Could not get the parent object from Endpoint");
-            return;
+            android_wish_printf("Parent Endpoint reference is null. This is OK, if you are adding a root-level endpoint.");
         }
 
     }
     else {
         android_wish_printf("Could not find the parent field from Endpoint");
         return;
+    }
+
+    if (parent_id_str != NULL) {
+        android_wish_printf("addEndpoint: parent of %s", parent_id_str);
     }
 
     /* Get "label" field, a String */
@@ -391,13 +402,13 @@ JNIEXPORT void JNICALL Java_mist_node_MistNodeApi_addEndpoint
     }
     char *label_str =  (char*) (*env)->GetStringUTFChars(env, labelString, NULL);
 
-    WISHDEBUG(LOG_CRITICAL, "addEndpoint: %s", label_str);
+    android_wish_printf("addEndpoint: %s", label_str);
 
     /* Get "type" field, an int */
 
     jfieldID typeField = (*env)->GetFieldID(env, endpointClass, "type", "I");
     jint type = (*env)->GetIntField(env, java_Endpoint, typeField);
-    WISHDEBUG(LOG_CRITICAL, "addEndpoint: type %i", type);
+    android_wish_printf("addEndpoint: type %i", type);
     //ep_data->type = type;
 
     /* Get "unit" field, a String */
@@ -411,7 +422,7 @@ JNIEXPORT void JNICALL Java_mist_node_MistNodeApi_addEndpoint
         android_wish_printf("Could not get unitString");
     }
     char *unit_str =  (char*) (*env)->GetStringUTFChars(env, unitString, NULL);
-    WISHDEBUG(LOG_CRITICAL, "addEndpoint: unit %s", unit_str);
+    android_wish_printf("addEndpoint: unit %s", unit_str);
 
     /* Get readable boolean */
     jfieldID readableField = (*env)->GetFieldID(env, endpointClass, "readable", "Z");
@@ -419,7 +430,7 @@ JNIEXPORT void JNICALL Java_mist_node_MistNodeApi_addEndpoint
 
     enum mist_error (*ep_read_fn)(mist_ep* ep, mist_buf* result) = NULL;
     if (readable) {
-        WISHDEBUG(LOG_CRITICAL, "is readable");
+        android_wish_printf("is readable");
         ep_read_fn = hw_read;
     }
 
@@ -429,7 +440,7 @@ JNIEXPORT void JNICALL Java_mist_node_MistNodeApi_addEndpoint
     enum mist_error (*ep_write_fn)(mist_ep* ep, mist_buf value) = NULL;
     /* Get the relevant Endpoint<type>.Writable object reference */
     if (writable) {
-        WISHDEBUG(LOG_CRITICAL, "is writable");
+        android_wish_printf("is writable");
         jfieldID writableCallbackField = NULL;
         jobject writableCallbackObject = NULL;
         switch (type) {
@@ -451,7 +462,7 @@ JNIEXPORT void JNICALL Java_mist_node_MistNodeApi_addEndpoint
             break;
         }
         if (writableCallbackObject == NULL) {
-            WISHDEBUG(LOG_CRITICAL, "Could not get writable callback object");
+            android_wish_printf("Could not get writable callback object");
             return;
         } else {
             /* Create a global reference for the Callback object */
@@ -538,7 +549,9 @@ JNIEXPORT void JNICALL Java_mist_node_MistNodeApi_addEndpoint
 
     //char* parent = endpoint_path_from_model(parent_id_str);
 
-    mist_add_ep(model, parent_id_str, ep);
+    if (MIST_NO_ERROR != mist_add_ep(model, parent_id_str, ep)) {
+        android_wish_printf("addEndpoint returned error");
+    }
 
     LL_APPEND(endpoint_head, ep_data);
 
@@ -549,7 +562,7 @@ JNIEXPORT void JNICALL Java_mist_node_MistNodeApi_addEndpoint
     }
     (*env)->ReleaseStringUTFChars(env, labelString, label_str);
     (*env)->ReleaseStringUTFChars(env, unitString, unit_str);
-
+    android_wish_printf("exiting addEndpoint");
 }
 
 /*
