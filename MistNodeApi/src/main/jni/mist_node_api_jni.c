@@ -41,7 +41,8 @@ static jobject mistNodeApiInstance;
 
 
 struct endpoint_data {
-    char *endpoint_id;
+    //char *endpoint_id;
+    mist_ep *ep;
     jobject invokable_object;
     jobject writable_object;
     struct endpoint_data *next;
@@ -52,7 +53,7 @@ static struct endpoint_data *endpoint_head = NULL;
 static struct endpoint_data *lookup_ep_data_by_ep_id(char *ep_id) {
     struct endpoint_data *ep_data = NULL;
     LL_FOREACH(endpoint_head, ep_data) {
-        if (strcmp(ep_data->endpoint_id, ep_id) == 0) {
+        if (strcmp(ep_data->ep->id, ep_id) == 0) {
             return ep_data;
         }
     }
@@ -181,11 +182,15 @@ JNIEXPORT void JNICALL Java_mist_node_MistNodeApi_updateBool
         return;
     }
 
+#if 0
     mist_ep *ep = NULL;
     if (MIST_NO_ERROR != mist_find_endpoint_by_name(model, id_str, &ep)) {
         WISHDEBUG(LOG_CRITICAL, "Could not find mist_ep by id!");
         return;
     }
+#else
+    mist_ep *ep = ep_data->ep;
+#endif
     if (ep == NULL) {
         WISHDEBUG(LOG_CRITICAL, "mist_ep unexpectedly NULL!");
         return;
@@ -211,11 +216,15 @@ JNIEXPORT void JNICALL Java_mist_node_MistNodeApi_updateInt
         WISHDEBUG(LOG_CRITICAL, "Could not find ep_data");
         return;
     }
+#if 0
     mist_ep *ep = NULL;
     if (MIST_NO_ERROR != mist_find_endpoint_by_name(model, id_str, &ep)) {
         WISHDEBUG(LOG_CRITICAL, "Could not find mist_ep by id!");
         return;
     }
+#else
+    mist_ep *ep = ep_data->ep;
+#endif
     if (ep == NULL) {
         WISHDEBUG(LOG_CRITICAL, "mist_ep unexpectedly NULL!");
         return;
@@ -254,15 +263,20 @@ JNIEXPORT void JNICALL Java_mist_node_MistNodeApi_updateString
         memset(str_copy, 0, str_copy_len);
         memcpy(str_copy, str, str_len);
 
+#if 0
         mist_ep *ep = NULL;
         if (MIST_NO_ERROR != mist_find_endpoint_by_name(model, id_str, &ep)) { //This is the point where it fails when you deal with nested mist.name ep
             android_wish_printf("Could not find mist_ep by id!");
             return;
         }
+#else
+        mist_ep *ep = ep_data->ep;
+#endif
         if (ep == NULL) {
             android_wish_printf("mist_ep unexpectedly NULL!");
             return;
         }
+
 
         /* If ep_data->string_value is non null it means that we have old value. Free it. */
 
@@ -296,11 +310,15 @@ JNIEXPORT void JNICALL Java_mist_node_MistNodeApi_updateFloat
         WISHDEBUG(LOG_CRITICAL, "Could not find ep_data");
         return;
     }
+#if 0
     mist_ep *ep = NULL;
     if (MIST_NO_ERROR != mist_find_endpoint_by_name(model, id_str, &ep)) {
         WISHDEBUG(LOG_CRITICAL, "Could not find mist_ep by id!");
         return;
     }
+#else
+    mist_ep *ep = ep_data->ep;
+#endif
     if (ep == NULL) {
         WISHDEBUG(LOG_CRITICAL, "mist_ep unexpectedly NULL!");
         return;
@@ -341,7 +359,7 @@ JNIEXPORT void JNICALL Java_mist_node_MistNodeApi_addEndpoint
         android_wish_printf("Could not get idString");
     }
     char *id_str =  (char*) (*env)->GetStringUTFChars(env, idString, NULL);
-    ep_data->endpoint_id = strdup(id_str);
+    //ep_data->endpoint_id = strdup(id_str);
 
     android_wish_printf("addEndpoint: %s", id_str);
 
@@ -409,7 +427,6 @@ JNIEXPORT void JNICALL Java_mist_node_MistNodeApi_addEndpoint
     jfieldID typeField = (*env)->GetFieldID(env, endpointClass, "type", "I");
     jint type = (*env)->GetIntField(env, java_Endpoint, typeField);
     android_wish_printf("addEndpoint: type %i", type);
-    //ep_data->type = type;
 
     /* Get "unit" field, a String */
 
@@ -515,6 +532,7 @@ JNIEXPORT void JNICALL Java_mist_node_MistNodeApi_addEndpoint
     ep->id = strdup(id_str);
     ep->label = strdup(label_str);
     ep->type = type;
+    ep_data->ep = ep;
 
     switch (type) {
     case MIST_TYPE_FLOAT:
@@ -527,11 +545,13 @@ JNIEXPORT void JNICALL Java_mist_node_MistNodeApi_addEndpoint
         *((bool*) ep->data.base) = false;
         break;
     case MIST_TYPE_INVOKE:
-         android_wish_printf("Invocables are not supported at this time");
-    case MIST_TYPE_STRING:
+        android_wish_printf("Invocables are not supported at this time");
         free(ep->data.base);
         ep->data.base = NULL;
         ep->data.len = 0;
+        break;
+    case MIST_TYPE_STRING:
+        /* Don't free the memory here, because it will cause a crash if you never assign (update) a value to a string EP, and somebody does control.read on it */
         break;
     default:
         android_wish_printf("");
