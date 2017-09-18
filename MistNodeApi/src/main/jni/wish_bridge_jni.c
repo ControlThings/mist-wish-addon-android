@@ -70,14 +70,29 @@ uint8_t my_wsid[WISH_WSID_LEN];
 void send_app_to_core(uint8_t *wsid, const uint8_t *data, size_t len) {
     android_wish_printf("Send app to core");
 
+    if (wsid == NULL) {
+        android_wish_printf("send_app_to_core was supplied with NULL wsid, this indicates an error, giving up.");
+        return;
+    }
+
     memcpy(my_wsid, wsid, WISH_WSID_LEN);
 
     /* This will be set to true, if the thread of execution was not a JavaVM thread */
     bool did_attach = false;
 
+    if (javaVM == NULL) {
+        android_wish_printf("javaVM is NULL, this indicates wish_bridge_jni is not registered(), giving up.");
+        return;
+    }
+
     JNIEnv * my_env = NULL;
     if (getJNIEnv(javaVM, &my_env, &did_attach)) {
         android_wish_printf("Method invocation failure, could not get JNI env");
+        return;
+    }
+
+    if (wishAppBridgeInstance == NULL) {
+        android_wish_printf("wishAppBridgeInstance is null, this probably means that register() has not bee called. Giving up.");
         return;
     }
 
