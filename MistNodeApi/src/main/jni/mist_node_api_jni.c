@@ -33,7 +33,7 @@ To re-create JNI interface:
 
 
 static JavaVM *javaVM;
-static struct mist_model *model;
+static mist_model *model;
 static wish_app_t *app;
 static jobject mistNodeApiInstance;
 
@@ -598,7 +598,7 @@ JNIEXPORT void JNICALL Java_mist_node_MistNodeApi_startMistApp
     if (app == NULL) {
         WISHDEBUG(LOG_CRITICAL, "Failed creating wish app!");
     }
-    wish_app_add_protocol(app, &mist_app->ucp_handler);
+    wish_app_add_protocol(app, &mist_app->protocol);
     mist_app->app = app;
     (*env)->ReleaseStringUTFChars(env, java_appName, name_str);
 
