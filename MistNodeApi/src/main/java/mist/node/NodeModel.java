@@ -24,15 +24,18 @@ public class NodeModel {
 
     private void addChildEndpoint(Endpoint ep) {
         mistNodeApi.addEndpoint(ep);
-        /*
-        do {
-            mistNodeApi.addEndpoint(ep);
-            if (ep.getFirstChild() != null) {
-                addChildEndpoint(ep.getFirstChild());
+
+        Endpoint epNext = ep.getNext();
+        while (epNext != null) {
+            mistNodeApi.addEndpoint(epNext);
+
+            if (epNext.getFirstChild() != null) {
+                addChildEndpoint(epNext.getFirstChild());
             }
-            ep = ep.getNext();
-        } while (ep != null);
-        */
+
+            epNext = epNext.getNext();
+        }
+
     }
 
     public void setRootEndpoint(Endpoint root) {
