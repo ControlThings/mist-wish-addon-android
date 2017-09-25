@@ -298,59 +298,40 @@ JNIEXPORT void JNICALL Java_mist_node_MistNodeApi_updateFloat
     android_wish_printf("exiting updateFloat");
 }
 
-/*
- * Class:     fi_ct_mist_mistnodeapi_api_mistNode_MistNodeApi
- * Method:    addEndpoint
- * Signature: (Lmist/node/Endpoint;)V
+/**
+ * Returns the endpoint's parent id as a full path, or NULL if there is no parent endpoint. If return value is non-null,
+ * the value is allocated from heap and you must release it.
+ *
+ * Example: for an Endpoint object that has a parent Endpoint with id bar, which in turn has parent Endpoint with id "foo",
+ * build_parent_id_full_path() returns "foo.bar"
  */
-JNIEXPORT void JNICALL Java_mist_node_MistNodeApi_addEndpoint
-  (JNIEnv *env, jobject java_this, jobject java_Endpoint) {
-    android_wish_printf("in addEndpoint");
-
-    struct endpoint_data *ep_data = wish_platform_malloc(sizeof (struct endpoint_data));
-    if (ep_data == NULL) {
-        android_wish_printf("Could allocate memory for endpoint callbacks");
-        return;
-    }
-    memset(ep_data, 0, sizeof (struct endpoint_data));
+static char* build_parent_id_full_path(JNIEnv *env, jobject java_Endpoint) {
+    /** Build the full id path of the parent. The parent endpoints's id with full path will be built here */
+    char *parent_id_fullpath_str = NULL;
 
     /* Get the class corresponding to java_Endpoint instance */
     jclass endpointClass = (*env)->GetObjectClass(env, java_Endpoint);
-
-    /* Get "id" field, a String */
-    jfieldID idField = (*env)->GetFieldID(env, endpointClass, "id", "Ljava/lang/String;");
-    if (idField == NULL) {
-        android_wish_printf("Could not get idField");
-    }
-    jobject idString = (*env)->GetObjectField(env, java_Endpoint, idField);
-    if (idString == NULL) {
-        android_wish_printf("Could not get idString");
-    }
-    char *id_str =  (char*) (*env)->GetStringUTFChars(env, idString, NULL);
-
-    android_wish_printf("addEndpoint: %s", id_str);
-
-    /* Get the parent endpoint's id */
-
-    char *parent_id_fullpath_str = NULL;
 
     jfieldID parentEpField = (*env)->GetFieldID(env, endpointClass, "parent", "Lmist/node/Endpoint;");
     if (parentEpField != NULL) {
 
         jobject parentEndpoint = (*env)->GetObjectField(env, java_Endpoint, parentEpField);
-        if (parentEndpoint != NULL) {
-
+        if (parentEndpoint == NULL) {
+            android_wish_printf("Parent Endpoint reference is null. This is OK, if you are adding a root-level endpoint.");
+        }
+        else {
+            /* Start moving up the endpoint parent relationship tree, and build the parent_id_fullpath_str as we go */
             while (parentEndpoint != NULL) {
                 jclass parentEndpointClass = (*env)->GetObjectClass(env, parentEndpoint);
                 if (parentEndpointClass == NULL) {
                     android_wish_printf("Could not get the Endpoint class corresponding to the parent");
-                    return;
+                    return NULL;
                 }
 
                 jfieldID parentEpIdField = (*env)->GetFieldID(env, parentEndpointClass, "id", "Ljava/lang/String;");
                 if (parentEpIdField == NULL) {
                     android_wish_printf("Could not get the parent Endpoint's id field");
-                    return;
+                    return NULL;
                 }
                 jobject parentEpIdString = (*env)->GetObjectField(env, parentEndpoint, parentEpIdField);
                 if (parentEpIdString != NULL) {
@@ -358,10 +339,11 @@ JNIEXPORT void JNICALL Java_mist_node_MistNodeApi_addEndpoint
 
                     if (parent_id_str == NULL) {
                         android_wish_printf("parent_id_str is NULL!");
-                        return;
+                        return NULL;
                     }
 
                     if (parent_id_fullpath_str != NULL) {
+                        /* parent_id_fullpath_str exists already, increase the allocated area */
                         int old_fullpath_len = strlen(parent_id_fullpath_str);
                         int id_len = strlen(parent_id_str);
                         parent_id_fullpath_str = realloc(parent_id_fullpath_str,  old_fullpath_len + 2 + id_len);
@@ -372,31 +354,60 @@ JNIEXPORT void JNICALL Java_mist_node_MistNodeApi_addEndpoint
                         *(parent_id_fullpath_str+id_len) = '.';
                     }
                     else {
+                        /* Do a initial allocation for parent_id_fullpath_str */
                         parent_id_fullpath_str = strdup(parent_id_str);
                     }
 
-
-                    if (parent_id_str != NULL) {
-                        (*env)->ReleaseStringUTFChars(env, parentEpIdString, parent_id_str);
-                    }
+                    (*env)->ReleaseStringUTFChars(env, parentEpIdString, parent_id_str);
                 }
                 else {
                     android_wish_printf("Could not get parent Endpoint's id object");
-                    return;
+                    return NULL;
                 }
 
+                /* Move one step up the parent relationship tree */
                 parentEndpoint = (*env)->GetObjectField(env, parentEndpoint, parentEpField);
             }
         }
-        else {
-            android_wish_printf("Parent Endpoint reference is null. This is OK, if you are adding a root-level endpoint.");
-        }
-
     }
     else {
         android_wish_printf("Could not find the parent field from Endpoint");
+        return NULL;
+    }
+    return parent_id_fullpath_str;
+}
+
+/*
+ * Class:     fi_ct_mist_mistnodeapi_api_mistNode_MistNodeApi
+ * Method:    addEndpoint
+ * Signature: (Lmist/node/Endpoint;)V
+ */
+JNIEXPORT void JNICALL Java_mist_node_MistNodeApi_addEndpoint
+  (JNIEnv *env, jobject java_this, jobject java_Endpoint) {
+    android_wish_printf("in addEndpoint");
+
+    /* Get the class corresponding to java_Endpoint instance */
+    jclass endpointClass = (*env)->GetObjectClass(env, java_Endpoint);
+
+    /* Get "id" field, a String */
+    jfieldID idField = (*env)->GetFieldID(env, endpointClass, "id", "Ljava/lang/String;");
+    if (idField == NULL) {
+        android_wish_printf("Could not get idField");
         return;
     }
+    jobject idString = (*env)->GetObjectField(env, java_Endpoint, idField);
+    if (idString == NULL) {
+        android_wish_printf("Could not get idString");
+        return;
+    }
+    char *id_str =  (char*) (*env)->GetStringUTFChars(env, idString, NULL);
+    if (id_str == NULL) {
+        android_wish_printf("Could not GetStringUTF of idString", id_str);
+        return;
+    }
+
+    /** Build the full id path of the parent. The parent endpoints's id with full path will be built here */
+    char *parent_id_fullpath_str = build_parent_id_full_path(env, java_Endpoint);
 
     if (parent_id_fullpath_str != NULL) {
         android_wish_printf("addEndpoint: parent fullpath is %s, ep = %s", parent_id_fullpath_str, id_str);
@@ -407,12 +418,19 @@ JNIEXPORT void JNICALL Java_mist_node_MistNodeApi_addEndpoint
     jfieldID labelField = (*env)->GetFieldID(env, endpointClass, "label", "Ljava/lang/String;");
     if (labelField == NULL) {
         android_wish_printf("Could not get labelField");
+        return;
     }
     jobject labelString = (*env)->GetObjectField(env, java_Endpoint, labelField);
     if (labelString == NULL) {
         android_wish_printf("Could not get labelString");
+        return;
     }
+
     char *label_str =  (char*) (*env)->GetStringUTFChars(env, labelString, NULL);
+    if (label_str == NULL) {
+        android_wish_printf("Could not GetStringUTF of labelString");
+        return;
+    }
 
     android_wish_printf("addEndpoint: %s", label_str);
 
@@ -433,7 +451,19 @@ JNIEXPORT void JNICALL Java_mist_node_MistNodeApi_addEndpoint
         android_wish_printf("Could not get unitString");
     }
     char *unit_str =  (char*) (*env)->GetStringUTFChars(env, unitString, NULL);
-    android_wish_printf("addEndpoint: unit %s", unit_str);
+    if (unit_str == NULL) {
+        android_wish_printf("Could not GetStringUTF of unitString");
+        return;
+    }
+
+    android_wish_printf("addEndpoint: id = %s, parent full path = %s, type %i, unit %s", id_str, parent_id_fullpath_str, type, unit_str);
+
+    struct endpoint_data *ep_data = wish_platform_malloc(sizeof (struct endpoint_data));
+    if (ep_data == NULL) {
+        android_wish_printf("Could allocate memory for endpoint callbacks");
+        return;
+    }
+    memset(ep_data, 0, sizeof (struct endpoint_data));
 
     /* Get readable boolean */
     jfieldID readableField = (*env)->GetFieldID(env, endpointClass, "readable", "Z");
