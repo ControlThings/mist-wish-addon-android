@@ -317,7 +317,7 @@ static char* build_parent_id_full_path(JNIEnv *env, jobject java_Endpoint) {
 
         jobject parentEndpoint = (*env)->GetObjectField(env, java_Endpoint, parentEpField);
         if (parentEndpoint == NULL) {
-            android_wish_printf("Parent Endpoint reference is null. This is OK, if you are adding a root-level endpoint.");
+            /* Parent Endpoint reference is null. This is OK, if you are adding a root-level endpoint. */
         }
         else {
             /* Start moving up the endpoint parent relationship tree, and build the parent_id_fullpath_str as we go */
@@ -384,7 +384,7 @@ static char* build_parent_id_full_path(JNIEnv *env, jobject java_Endpoint) {
  */
 JNIEXPORT void JNICALL Java_mist_node_MistNodeApi_addEndpoint
   (JNIEnv *env, jobject java_this, jobject java_Endpoint) {
-    android_wish_printf("in addEndpoint");
+    //android_wish_printf("in addEndpoint");
 
     /* Get the class corresponding to java_Endpoint instance */
     jclass endpointClass = (*env)->GetObjectClass(env, java_Endpoint);
@@ -409,10 +409,6 @@ JNIEXPORT void JNICALL Java_mist_node_MistNodeApi_addEndpoint
     /** Build the full id path of the parent. The parent endpoints's id with full path will be built here */
     char *parent_id_fullpath_str = build_parent_id_full_path(env, java_Endpoint);
 
-    if (parent_id_fullpath_str != NULL) {
-        android_wish_printf("addEndpoint: parent fullpath is %s, ep = %s", parent_id_fullpath_str, id_str);
-    }
-
     /* Get "label" field, a String */
 
     jfieldID labelField = (*env)->GetFieldID(env, endpointClass, "label", "Ljava/lang/String;");
@@ -432,13 +428,12 @@ JNIEXPORT void JNICALL Java_mist_node_MistNodeApi_addEndpoint
         return;
     }
 
-    android_wish_printf("addEndpoint: %s", label_str);
 
     /* Get "type" field, an int */
 
     jfieldID typeField = (*env)->GetFieldID(env, endpointClass, "type", "I");
     jint type = (*env)->GetIntField(env, java_Endpoint, typeField);
-    android_wish_printf("addEndpoint: type %i", type);
+    //android_wish_printf("addEndpoint: type %i", type);
 
     /* Get "unit" field, a String */
 
@@ -456,7 +451,7 @@ JNIEXPORT void JNICALL Java_mist_node_MistNodeApi_addEndpoint
         return;
     }
 
-    android_wish_printf("addEndpoint: id = %s, parent full path = %s, type %i, unit %s", id_str, parent_id_fullpath_str, type, unit_str);
+    android_wish_printf("addEndpoint, id: %s, label: %s, parent full path: %s, type: %i, unit: %s", id_str, label_str, parent_id_fullpath_str, type, unit_str);
 
     struct endpoint_data *ep_data = wish_platform_malloc(sizeof (struct endpoint_data));
     if (ep_data == NULL) {
@@ -471,7 +466,7 @@ JNIEXPORT void JNICALL Java_mist_node_MistNodeApi_addEndpoint
 
     enum mist_error (*ep_read_fn)(mist_ep* ep, mist_buf* result) = NULL;
     if (readable) {
-        android_wish_printf("is readable");
+        android_wish_printf("Endpoint %s is readable", id_str);
         ep_read_fn = hw_read;
     }
 
@@ -481,7 +476,7 @@ JNIEXPORT void JNICALL Java_mist_node_MistNodeApi_addEndpoint
     enum mist_error (*ep_write_fn)(mist_ep* ep, mist_buf value) = NULL;
     /* Get the relevant Endpoint<type>.Writable object reference */
     if (writable) {
-        android_wish_printf("is writable");
+        android_wish_printf("Endpoint %s is writable, id_str");
         jfieldID writableCallbackField = NULL;
         jobject writableCallbackObject = NULL;
         switch (type) {
@@ -519,7 +514,7 @@ JNIEXPORT void JNICALL Java_mist_node_MistNodeApi_addEndpoint
     enum mist_error (*ep_invoke_fn)(mist_ep* ep, mist_buf args) = NULL;
 
     if (invokable) {
-        WISHDEBUG(LOG_CRITICAL, "is invokable");
+        WISHDEBUG(LOG_CRITICAL, "Endpoint %s is invokable", id_str);
          /* Get the Endpoint.Invokable object reference field */
         jfieldID invokeCallbackField = (*env)->GetFieldID(env, endpointClass, "invokeCallback", "Lmist/node/Endpoint$Invokable;");
         if (invokeCallbackField == NULL) {
@@ -566,7 +561,7 @@ JNIEXPORT void JNICALL Java_mist_node_MistNodeApi_addEndpoint
         *((bool*) ep->data.base) = false;
         break;
     case MIST_TYPE_INVOKE:
-        android_wish_printf("Invocables are not supported at this time");
+        android_wish_printf("Endpoint %s: Invocable endpoints are not supported at this time", id_str);
         free(ep->data.base);
         ep->data.base = NULL;
         ep->data.len = 0;
@@ -600,7 +595,7 @@ JNIEXPORT void JNICALL Java_mist_node_MistNodeApi_addEndpoint
     (*env)->ReleaseStringUTFChars(env, idString, id_str);
     (*env)->ReleaseStringUTFChars(env, labelString, label_str);
     (*env)->ReleaseStringUTFChars(env, unitString, unit_str);
-    android_wish_printf("exiting addEndpoint");
+    //android_wish_printf("exiting addEndpoint");
 }
 
 /*
