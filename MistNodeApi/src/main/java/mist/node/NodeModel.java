@@ -10,24 +10,24 @@ import android.util.Log;
 public class NodeModel {
     private String name;
     private Endpoint root;
-    MistNodeApi mistNodeApi;
+    MistNode mistNode;
 
     public NodeModel(String name, Context context) {
         this.name = name;
-        mistNodeApi = MistNodeApi.getInstance();
+        mistNode = MistNode.getInstance();
 
         /* Start mist app via JNI. */
-        mistNodeApi.startMistApp(name, context);
+        mistNode.startMistApp(name, context);
 
         /* FIXME Check that the mist app was started correctly */
     }
 
     private void addChildEndpoint(Endpoint ep) {
-        mistNodeApi.addEndpoint(ep);
+        mistNode.addEndpoint(ep);
 
         Endpoint epNext = ep.getNext();
         while (epNext != null) {
-            mistNodeApi.addEndpoint(epNext);
+            mistNode.addEndpoint(epNext);
 
             if (epNext.getFirstChild() != null) {
                 addChildEndpoint(epNext.getFirstChild());
@@ -46,7 +46,7 @@ public class NodeModel {
 
         Endpoint ep = root;
         do {
-            mistNodeApi.addEndpoint(ep);
+            mistNode.addEndpoint(ep);
             if (ep.getFirstChild() != null) {
                 addChildEndpoint(ep.getFirstChild());
             }

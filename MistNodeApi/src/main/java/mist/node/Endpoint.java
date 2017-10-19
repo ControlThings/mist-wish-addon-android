@@ -11,7 +11,7 @@ class Endpoint {
     static final int MIST_TYPE_STRING = 3;
     /* ... */
 
-    private MistNodeApi mistNodeApi;
+    private MistNode mistNode;
 
     private Endpoint next;
 
@@ -43,7 +43,7 @@ class Endpoint {
         this.type = type;
         this.unit = unit;
         this.readable = readable;
-        mistNodeApi = MistNodeApi.getInstance();
+        mistNode = MistNode.getInstance();
     }
 
     public void addNext(Endpoint e) {
@@ -94,19 +94,19 @@ class Endpoint {
 
     void update(boolean newValue) {
         /* Call low-level C method for updating new values through JNI */
-        mistNodeApi.updateBool(id, newValue);
+        mistNode.updateBool(id, newValue);
     }
 
     void update(int newValue) {
-        mistNodeApi.updateInt(id, newValue);
+        mistNode.updateInt(id, newValue);
     }
 
     void update(double newValue) {
-        mistNodeApi.updateFloat(id, newValue);
+        mistNode.updateFloat(id, newValue);
     }
 
     void update(String newValue) {
-        mistNodeApi.updateString(id, newValue);
+        mistNode.updateString(id, newValue);
     }
 
 
