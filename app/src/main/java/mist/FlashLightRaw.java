@@ -2,9 +2,7 @@ package mist;
 
 import android.content.Context;
 
-import java.util.Timer;
-
-import mist.node.EndpointRaw;
+import mist.node.Endpoint;
 import mist.node.MistNode;
 
 /**
@@ -18,10 +16,10 @@ public class FlashLightRaw {
     public FlashLightRaw(Context context) {
         final MistNode node = MistNode.getInstance();
         node.startMistApp("FlashListRaw", context);
-        node.addEndpoint(new EndpointRaw("mist")
-                .setRead(new EndpointRaw.ReadableInt() {
+        node.addEndpoint(new Endpoint("mist")
+                .setRead(new Endpoint.ReadableInt() {
                     @Override
-                    public void read(Peer peer, final EndpointRaw.ReadableIntResponse response) {
+                    public void read(Peer peer, final Endpoint.ReadableIntResponse response) {
                         new android.os.Handler().postDelayed(
                                 new Runnable() {
                                     public void run() {
@@ -32,9 +30,9 @@ public class FlashLightRaw {
                                 300);
                     }
                 })
-                .setWrite(new EndpointRaw.WritableInt() {
+                .setWrite(new Endpoint.WritableInt() {
                     @Override
-                    public void write(int value, Peer peer, EndpointRaw.WriteResponse response) {
+                    public void write(int value, Peer peer, Endpoint.WriteResponse response) {
                         if (dataValue > 7) {
                             dataValue = value;
                             response.send();

@@ -5,12 +5,9 @@ import android.content.pm.PackageManager;
 import android.hardware.Camera;
 import android.hardware.camera2.CameraManager;
 import android.os.Build;
-import android.util.Log;
 
-import mist.node.EndpointInt;
-import mist.node.EndpointString;
-import mist.node.NodeModel;
-import mist.node.EndpointBoolean;
+import mist.node.Endpoint;
+import mist.node.MistNode;
 
 /**
  * Created by jeppe on 9/12/16.
@@ -28,66 +25,53 @@ public class FlashLight {
     private Camera camera = null;
     private Camera.Parameters parameters;
 
-    private Boolean isTorchOn = false;
+    private boolean isTorchOn = false;
     private String cameraId;
 
-    // Mist device/node model
-    NodeModel model;
-    // Mist endpoint
-    private EndpointBoolean lightOn;
-    private EndpointString myStringEndpoint;
-    private EndpointInt myIntEndpoint;
+    private Endpoint mist;
+    private Endpoint mistName;
+    private Endpoint lightEndpoint;
+    private Endpoint myStringEndpoint;
+    private Endpoint myIntEndpoint;
 
 
     public FlashLight(Context context) {
         this._context = context;
         initCameraId();
 
-        model = new NodeModel("Light", context);
+        /* FIXME this might be moved to Mist.java:onCreate */
+        MistNode.getInstance().startMistApp("Flashlight", context);
 
-        lightOn = new EndpointBoolean("torch", "Torch");
-
-        lightOn.setWritable(new EndpointBoolean.Writable() {
+        mist = new Endpoint("mist");
+        mistName = new Endpoint("mist.name").setRead(new Endpoint.ReadableString() {
             @Override
-            public void write(boolean value) {
-                if (value) {
-                    turnOnFlashLight();
-                } else {
-                    turnOffFlashLight();
-                }
-
-                // update value in Mist model
-                lightOn.update(value);
+            public void read(Peer peer, Endpoint.ReadableStringResponse response) {
+                response.send("Flashlight");
             }
         });
 
+        lightEndpoint = new Endpoint("light")
+                .setRead(new Endpoint.ReadableBool() {
+                    @Override
+                    public void read(Peer peer, Endpoint.ReadableBoolResponse response) {
+                        response.send(isTorchOn);
+                    }
+                })
+                .setLabel("The light's state")
+                .setWrite(new Endpoint.WritableBool() {
+                    @Override
+                    public void write(boolean value, Peer peer, Endpoint.WriteResponse response) {
+                        if (value) {
+                            turnOnFlashLight();
+                        }
+                        else {
+                            turnOffFlashLight();
+                        }
 
+                        response.send();
 
-
-        myStringEndpoint = new EndpointString("str", "Test String");
-        myStringEndpoint.setWritable(new EndpointString.Writable() {
-            @Override
-            public void write(String newValue) {
-                Log.d(TAG, "Writing string here:" + newValue);
-                myStringEndpoint.update(newValue);
-            }
-        });
-        myStringEndpoint.setReadable(true);
-        lightOn.addNext(myStringEndpoint);
-
-        myIntEndpoint = new EndpointInt("int", "Test int");
-        myIntEndpoint.setWritable(new EndpointInt.Writable() {
-            @Override
-            public void write(int newValue) {
-                Log.d(TAG, "Writing string here:" + newValue);
-                myIntEndpoint.update(newValue);
-            }
-        });
-        myIntEndpoint.setReadable(true);
-        lightOn.addNext(myIntEndpoint);
-
-
-        model.setRootEndpoint(lightOn);
+                    }
+                });
 
     }
 
@@ -103,6 +87,7 @@ public class FlashLight {
                 camera.startPreview();
             }
             isTorchOn = true;
+            lightEndpoint.changed();
         } catch (Exception e) {
             e.printStackTrace();
         }
@@ -123,6 +108,7 @@ public class FlashLight {
                 }
             }
             isTorchOn = false;
+            lightEndpoint.changed();
         } catch (Exception e) {
             e.printStackTrace();
         }

@@ -4,7 +4,7 @@ import android.content.Context;
 
 import mist.Peer;
 
-import mist.node.EndpointRaw.*;
+import mist.node.Endpoint.*;
 
 
 /**
@@ -40,8 +40,8 @@ public class MistNode {
     synchronized native void startMistApp(String appName);
     synchronized native void stopMistApp();
 
-    public synchronized native void addEndpoint(EndpointRaw ep);
-    public synchronized native void removeEndpoint(EndpointRaw ep);
+    public synchronized native void addEndpoint(Endpoint ep);
+    public synchronized native void removeEndpoint(Endpoint ep);
 
     public synchronized native void readResponse(String fullPath, int requestId, byte[] bson);
     public synchronized native void readError(String fullPath, int requestId, int code, String msg);
@@ -54,22 +54,20 @@ public class MistNode {
 
     public synchronized native void changed(String fullPath);
 
-    void read(final EndpointRaw ep, Peer peer, final int requestId) {
+    void read(final Endpoint ep, Peer peer, final int requestId) {
 
         /* Check data type of endpoint */
         if (ep.readCb instanceof ReadableInt) {
-            ReadableInt readCb = (ReadableInt) ep.readCb;
-
-            readCb.read(peer, new EndpointRaw.ReadableIntResponse(ep.epid, requestId) {
-
-            });
+            ((ReadableInt) ep.readCb).read(peer, new ReadableIntResponse(ep.epid, requestId));
         } else if (ep.readCb instanceof  ReadableBool) {
-            ((ReadableBool) ep.readCb).read(peer, new EndpointRaw.ReadableBoolResponse(ep.epid, requestId));
+            ((ReadableBool) ep.readCb).read(peer, new ReadableBoolResponse(ep.epid, requestId));
+        } else if (ep.readCb instanceof  ReadableString) {
+            ((ReadableString) ep.readCb).read(peer, new ReadableStringResponse(ep.epid, requestId));
         }
 
     }
 
-    void write(EndpointRaw ep, Peer peer, int requestId, byte[] args) {
+    void write(Endpoint ep, Peer peer, int requestId, byte[] args) {
         if (ep.writeCb instanceof WritableBool) {
             /* Read the value from BSON args.
             * { args: <value> }
@@ -88,7 +86,7 @@ public class MistNode {
         }
     }
 
-    void invoke(EndpointRaw ep, Peer peer, int requestId, byte[] args) {
+    void invoke(Endpoint ep, Peer peer, int requestId, byte[] args) {
         ep.invokeCb.invoke(args, peer, new InvokeResponse(ep.epid, requestId));
     }
 
