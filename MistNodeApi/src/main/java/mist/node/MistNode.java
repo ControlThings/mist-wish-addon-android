@@ -54,7 +54,18 @@ public class MistNode {
 
     public synchronized native void changed(String fullPath);
 
-    void read(final Endpoint ep, Peer peer, final int requestId) {
+    /**
+     *
+     * @param peer
+     * @param op
+     * @param args
+     * @return the RPC id
+     */
+    public synchronized native int nodeRequest(byte[] peer, String op, byte[] args); //call mist_app_request
+    public synchronized native void wishRequest(); //will call  wish_app_core_with_cb_context
+
+    void read(Endpoint ep, byte[] peerBson, final int requestId) {
+        Peer peer = new Peer(peerBson);
 
         /* Check data type of endpoint */
         if (ep.readCb instanceof ReadableInt) {
@@ -67,7 +78,9 @@ public class MistNode {
 
     }
 
-    void write(Endpoint ep, Peer peer, int requestId, byte[] args) {
+    void write(Endpoint ep, byte[] peerBson, int requestId, byte[] args) {
+        Peer peer = new Peer(peerBson);
+
         if (ep.writeCb instanceof WritableBool) {
             /* Read the value from BSON args.
             * { args: <value> }
@@ -86,9 +99,19 @@ public class MistNode {
         }
     }
 
-    void invoke(Endpoint ep, Peer peer, int requestId, byte[] args) {
+    void invoke(Endpoint ep, byte[] peerBson, int requestId, byte[] args) {
+        Peer peer = new Peer(peerBson);
         ep.invokeCb.invoke(args, peer, new InvokeResponse(ep.epid, requestId));
     }
+
+    void online(byte[] peerBson) {
+
+    }
+
+    void offline(byte[] peerBson) {
+
+    }
+
 
 
     /**

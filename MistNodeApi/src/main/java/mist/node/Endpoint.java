@@ -16,9 +16,9 @@ public class Endpoint {
     }
 
     private String parent;
+    private String id;
 
     public String epid;
-    private String id;
     private String label;
     private String unit;
     private Type type;
@@ -27,10 +27,11 @@ public class Endpoint {
     protected boolean writable;
     private boolean invokable;
 
-    public Endpoint(String fullPath) {
+    public Endpoint(String epid) {
         /* Note: fullPath must be evaluated and parent field set accordingly */
-        // this.id = ...
-        // this.parent = ...
+        this.epid = epid;
+        id = epid.substring(epid.lastIndexOf('.')+1);
+        parent = epid.substring(0, epid.lastIndexOf('.')+1);
     }
 
     public Readable readCb;

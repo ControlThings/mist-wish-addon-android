@@ -1,7 +1,15 @@
 package mist;
 
+import org.bson.BsonBinary;
+import org.bson.BsonBinaryWriter;
+import org.bson.BsonDocument;
+import org.bson.BsonWriter;
+import org.bson.RawBsonDocument;
+import org.bson.io.BasicOutputBuffer;
+
 import java.io.Serializable;
 import java.util.Arrays;
+
 
 /**
  * Created by jeppe on 11/16/16.
@@ -15,6 +23,33 @@ public class Peer implements Serializable {
     private byte[] remoteServiceId;
     private String protocol;
     private boolean online;
+
+    public Peer(byte[] peerBson) {
+        BsonDocument bson = new RawBsonDocument(peerBson);
+        localId = bson.get("luid").asBinary().getData();
+        remoteId = bson.get("ruid").asBinary().getData();
+        remoteHostId = bson.get("rhid").asBinary().getData();
+        remoteServiceId = bson.get("rsid").asBinary().getData();
+        protocol = bson.get("protocol").asString().getValue();
+        online = bson.get("online").asBoolean().getValue();
+    }
+
+    public byte[] toBson() {
+        BasicOutputBuffer buffer = new BasicOutputBuffer();
+        BsonWriter writer = new BsonBinaryWriter(buffer);
+
+        writer.writeStartDocument();
+        writer.writeBinaryData("luid", new BsonBinary(getLocalId()));
+        writer.writeBinaryData("ruid", new BsonBinary(getRemoteId()));
+        writer.writeBinaryData("rhid", new BsonBinary(getRemoteHostId()));
+        writer.writeBinaryData("rsid", new BsonBinary(getRemoteServiceId()));
+        writer.writeString("protocol", getProtocol());
+        writer.writeBoolean("online", isOnline());
+        writer.writeEndDocument();
+        writer.flush();
+
+        return buffer.toByteArray();
+    }
 
     public byte[] getLocalId() {
         return localId;
