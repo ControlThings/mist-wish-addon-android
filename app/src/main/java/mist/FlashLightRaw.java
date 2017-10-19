@@ -14,7 +14,7 @@ public class FlashLightRaw {
 
 
     public FlashLightRaw(Context context) {
-        final MistNode node = MistNode.getInstance();
+        MistNode node = MistNode.getInstance();
         node.startMistApp("FlashListRaw", context);
         node.addEndpoint(new Endpoint("mist")
                 .setRead(new Endpoint.ReadableInt() {
