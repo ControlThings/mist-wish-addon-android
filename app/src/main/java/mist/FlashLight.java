@@ -49,6 +49,8 @@ public class FlashLight {
                 response.send("Flashlight");
             }
         });
+        MistNode.getInstance().addEndpoint(mist);
+        MistNode.getInstance().addEndpoint(mistName);
 
         lightEndpoint = new Endpoint("light")
                 .setRead(new Endpoint.ReadableBool() {
@@ -72,7 +74,7 @@ public class FlashLight {
 
                     }
                 });
-
+        MistNode.getInstance().addEndpoint(lightEndpoint);
     }
 
     private void turnOnFlashLight() {
