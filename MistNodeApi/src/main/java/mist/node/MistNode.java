@@ -55,14 +55,20 @@ public class MistNode {
     public synchronized native void changed(String fullPath);
 
     /**
+     * Send a Mist request to remote peer.
      *
-     * @param peer
-     * @param op
-     * @param args
+     * @param peer a BSON representation of the protocol peer
+     * @param req a BSON representation of the RPC request, {op, args}
      * @return the RPC id
      */
-    public synchronized native int nodeRequest(byte[] peer, String op, byte[] args); //call mist_app_request
-    public synchronized native void wishRequest(); //will call  wish_app_core_with_cb_context
+    public synchronized native int nodeRequest(byte[] peer, byte[] req); //will call mist_app_request
+
+    /**
+     * Send a Wish request to the local Wish core
+     * @param req the request in BSON format
+     * @return the RPC id
+     */
+    public synchronized native int wishRequest(byte[] req); //will call  wish_app_core_with_cb_context
 
     void read(Endpoint ep, byte[] peerBson, final int requestId) {
         Peer peer = new Peer(peerBson);
