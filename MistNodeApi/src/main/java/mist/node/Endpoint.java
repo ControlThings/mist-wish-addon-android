@@ -1,5 +1,7 @@
 package mist.node;
 
+import android.util.Log;
+
 import org.bson.BsonBinary;
 import org.bson.BsonBinaryWriter;
 import org.bson.BsonWriter;
@@ -12,20 +14,20 @@ import mist.Peer;
  */
 
 public class Endpoint {
-    public enum Type {
-        MIST_TYPE_BOOL,     /* a true/false value (BSON bool) */
-        MIST_TYPE_FLOAT,    /* A floating point value (actually a BSON double) */
-        MIST_TYPE_INT,       /* A 32-bit signed integer (BSON int32) */
-        MIST_TYPE_STRING,   /* A string, which can be MIST_STRING_EP_MAX_LEN bytes long at most */
-        MIST_TYPE_INVOKE,   /* An endpoint which represent a function you can call, "invoke" so to speak */
-    }
+    private String TAG = "Endpoint";
+    private static final int MIST_TYPE_UNDEFINED = -1;
+    private static final int MIST_TYPE_BOOL = 0;     /* a true/false value (BSON bool) */
+    private static final int MIST_TYPE_FLOAT = 1;    /* A floating point value (actually a BSON double) */
+    private static final int MIST_TYPE_INT = 2;       /* A 32-bit signed integer (BSON int32) */
+    private static final int MIST_TYPE_STRING = 3;   /* A string, which can be MIST_STRING_EP_MAX_LEN bytes long at most */
+    private static final int MIST_TYPE_INVOKE = 4;   /* An endpoint which represent a function you can call, "invoke" so to speak */
 
     private String parent;
     private String id;
 
     private String epid;
     private String label;
-    private Type type;
+    private int type = MIST_TYPE_UNDEFINED;
     private String unit;
 
     private boolean readable;
@@ -57,15 +59,12 @@ public class Endpoint {
         return label;
     }
 
-    private void setType(Type type) {
-        if (this.type != null && this.type != type) {
-            throw new MistException("Type is already set to: " + type);
+    private void setType(int type) {
+        Log.d(TAG, "setType: " + this.type + " " + type);
+        if (this.type != MIST_TYPE_UNDEFINED && this.type != type) {
+            throw new MistException("Type is already set to: " + this.type + " trying to set it to: " + type );
         }
         this.type = type;
-    }
-
-    public Type getType() {
-        return type;
     }
 
     public Endpoint setUnit(String unit) {
@@ -79,7 +78,7 @@ public class Endpoint {
     }
 
     public Endpoint setRead(ReadableBool readableCb) {
-        setType(Type.MIST_TYPE_BOOL);
+        setType(MIST_TYPE_BOOL);
         readCb = readableCb;
         readable = true;
 
@@ -87,7 +86,7 @@ public class Endpoint {
     }
 
     public Endpoint setRead(ReadableInt readableCb) {
-        setType(Type.MIST_TYPE_INT);
+        setType(MIST_TYPE_INT);
         readCb = readableCb;
         readable = true;
 
@@ -95,7 +94,7 @@ public class Endpoint {
     }
 
     public Endpoint setRead(ReadableFloat readableCb) {
-        setType(Type.MIST_TYPE_FLOAT);
+        setType(MIST_TYPE_FLOAT);
         readCb = readableCb;
         readable = true;
 
@@ -103,7 +102,7 @@ public class Endpoint {
     }
 
     public Endpoint setRead(ReadableString readableCb) {
-        setType(Type.MIST_TYPE_STRING);
+        setType(MIST_TYPE_STRING);
         readCb = readableCb;
         readable = true;
 
@@ -119,7 +118,7 @@ public class Endpoint {
     }
 
     public Endpoint setWrite(WritableBool writableCb) {
-        setType(Type.MIST_TYPE_BOOL);
+        setType(MIST_TYPE_BOOL);
         writeCb = writableCb;
         writable = true;
 
@@ -127,7 +126,7 @@ public class Endpoint {
     }
 
     public Endpoint setWrite(WritableInt writableCb) {
-        setType(Type.MIST_TYPE_INT);
+        setType(MIST_TYPE_INT);
         writeCb = writableCb;
         writable = true;
 
@@ -135,7 +134,7 @@ public class Endpoint {
     }
 
     public Endpoint setWrite(WritableFloat writableCb) {
-        setType(Type.MIST_TYPE_FLOAT);
+        setType(MIST_TYPE_FLOAT);
         writeCb = writableCb;
         writable = true;
 
@@ -143,7 +142,7 @@ public class Endpoint {
     }
 
     public Endpoint setWrite(WritableString writableCb) {
-        setType(Type.MIST_TYPE_STRING);
+        setType(MIST_TYPE_STRING);
         writeCb = writableCb;
         writable = true;
 
@@ -159,7 +158,7 @@ public class Endpoint {
     }
 
     public Endpoint setInvoke(Invokable invokableCb) {
-        setType(Type.MIST_TYPE_INVOKE); // FIXME this type must only be used for datatypes, must be refactored out from mist-c99
+        setType(MIST_TYPE_INVOKE); // FIXME this type must only be used for datatypes, must be refactored out from mist-c99
         invokeCb = invokableCb;
         invokable = true;
 
