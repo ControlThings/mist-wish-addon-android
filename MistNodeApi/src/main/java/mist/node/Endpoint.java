@@ -26,9 +26,9 @@ public class Endpoint {
     private String id;
 
     private String epid;
-    private String label;
+    private String label = "";
     private int type = MIST_TYPE_UNDEFINED;
-    private String unit;
+    private String unit = "";
 
     private boolean readable;
     private boolean writable;
@@ -39,8 +39,9 @@ public class Endpoint {
     private Invokable invokeCb;
 
     public Endpoint(String epid) {
-        /* Note: fullPath must be evaluated and parent field set accordingly */
+        /* Note: fullPath epid must be evaluated, id and parent field set accordingly */
         this.epid = epid;
+
         if (epid.lastIndexOf('.') == -1) {
             id = epid;
             parent = null;

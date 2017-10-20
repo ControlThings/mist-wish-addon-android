@@ -45,7 +45,7 @@ public class FlashLight {
         mist = new Endpoint("mist").setRead(new Endpoint.ReadableString() {
             @Override
             public void read(Peer peer, Endpoint.ReadableStringResponse response) {
-                response.send("");
+                response.send("foo");
             }
         });
         mistName = new Endpoint("mist.name").setRead(new Endpoint.ReadableString() {

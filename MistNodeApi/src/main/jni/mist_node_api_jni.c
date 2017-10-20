@@ -62,6 +62,12 @@ static enum mist_error hw_read(mist_ep *ep,  wish_protocol_peer_t* peer, int req
 
     JNIEnv * env = NULL;
     bool did_attach = false;
+
+    if (javaVM == NULL) {
+        android_wish_printf("in hw_read, javaVM is NULL!");
+        return MIST_ERROR;
+    }
+
     if (getJNIEnv(javaVM, &env, &did_attach)) {
         android_wish_printf("Method invocation failure, could not get JNI env");
         return MIST_ERROR;
@@ -83,29 +89,42 @@ static enum mist_error hw_read(mist_ep *ep,  wish_protocol_peer_t* peer, int req
     char epid[MIST_EPID_LEN] = { 0 };
     mist_ep_full_epid(ep, epid);
     struct endpoint_data *ep_data = lookup_ep_data_by_epid(epid);
-
-    /* Serialise peer to BSON */
-    bson bs;
-    bson_init(&bs);
-    bson_append_peer(&bs, NULL, peer);
-    bson_finish(&bs);
-
-    jbyteArray java_peer = (*env)->NewByteArray(env, bson_size(&bs));
-    if (java_peer == NULL) {
-        android_wish_printf("Failed creating peer byte array");
+    if (ep_data == NULL) {
+        android_wish_printf("in hw_read, could not find ep_data for %s!", epid);
         return MIST_ERROR;
     }
-    (*env)->SetByteArrayRegion(env, java_peer, 0, bson_size(&bs), (const jbyte *) bson_data(&bs));
 
-    (*env)->CallVoidMethod(env, mistNodeInstance, readMethodId, ep_data->endpoint_object, java_peer, request_id);
+    android_wish_printf("Serialise peer to bson %x request_id %i", peer, request_id);
+    /* Serialise peer to BSON */
+    if (peer != NULL) {
+        bson bs;
+        bson_init(&bs);
+        bson_append_peer(&bs, NULL, peer);
+        bson_finish(&bs);
 
-    (*env)->DeleteLocalRef(env, java_peer);
-    bson_destroy(&bs);
+        android_wish_printf("Create peer array");
+        jbyteArray java_peer = (*env)->NewByteArray(env, bson_size(&bs));
+        if (java_peer == NULL) {
+            android_wish_printf("Failed creating peer byte array");
+            return MIST_ERROR;
+        }
+        (*env)->SetByteArrayRegion(env, java_peer, 0, bson_size(&bs), (const jbyte *) bson_data(&bs));
+        android_wish_printf("Call method");
+        (*env)->CallVoidMethod(env, mistNodeInstance, readMethodId, ep_data->endpoint_object, java_peer, request_id);
+        (*env)->DeleteLocalRef(env, java_peer);
+        bson_destroy(&bs);
+    }
+    else {
+        /* peer is null, call the read method with null peer excplicitly */
+        jbyteArray java_peer = (*env)->NewByteArray(env, 0);
+        (*env)->CallVoidMethod(env, mistNodeInstance, readMethodId, ep_data->endpoint_object, java_peer, request_id);
+    }
 
     if (did_attach) {
         detachThread(javaVM);
     }
 
+    android_wish_printf("Exit");
     return retval;
 }
 
@@ -345,7 +364,7 @@ android_wish_printf("in addEndpoint 3");
 
     android_wish_printf("in addEndpoint 5");
 
-    android_wish_printf("addEndpoint, id: %s, label: %s, parent full path: %s, type: %i, unit: %s", id_str, label_str, parent_epid_str, type, unit_str);
+    android_wish_printf("addEndpoint, epid: %s, id: %s, label: %s, parent full path: %s, type: %i, unit: %s", epid_str, id_str, label_str, parent_epid_str, type, unit_str);
 
     struct endpoint_data *ep_data = wish_platform_malloc(sizeof (struct endpoint_data));
     if (ep_data == NULL) {
@@ -387,11 +406,11 @@ android_wish_printf("in addEndpoint 3");
     if (writable) { ep->write = hw_write; }
     if (invokable) { ep->invoke = hw_invoke; } //hw_invoke_function;
 
-    ep->unit = NULL;
+    ep->unit = "";
     ep->next = NULL;
     ep->prev = NULL;
     ep->dirty = false;
-    ep->scaling = NULL;
+    ep->scaling = "";
 
     if (MIST_NO_ERROR != mist_ep_add(model, parent_epid_str, ep)) {
         android_wish_printf("addEndpoint returned error");
@@ -399,7 +418,9 @@ android_wish_printf("in addEndpoint 3");
 
     LL_APPEND(endpoint_head, ep_data);
 
-    free(parent_epid_str);
+    if (parent_epid_str != NULL) {
+        free(parent_epid_str);
+    }
 
     /* Clean up the (temporary) references we've created */
 
@@ -423,6 +444,15 @@ JNIEXPORT void JNICALL Java_mist_node_MistNode_removeEndpoint(JNIEnv *env, jobje
 JNIEXPORT void JNICALL Java_mist_node_MistNode_readResponse(JNIEnv *env, jobject java_this, jstring java_epid, jint request_id, jbyteArray java_data) {
     android_wish_printf("in readResponse");
 
+    if (java_data == NULL) {
+        android_wish_printf("in readResponse: java_data is NULL");
+        return;
+    }
+
+    if (java_epid == NULL) {
+        android_wish_printf("in readResponse: java_epid is NULL");
+        return;
+    }
     size_t data_length = (*env)->GetArrayLength(env, java_data);
     uint8_t *data = (uint8_t *) calloc(data_length, 1);
     if (data == NULL) {
