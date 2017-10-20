@@ -2,6 +2,10 @@ package mist.node;
 
 import android.content.Context;
 
+import org.bson.BSONException;
+import org.bson.BsonDocument;
+import org.bson.RawBsonDocument;
+
 import mist.Peer;
 
 import mist.node.Endpoint.*;
@@ -71,43 +75,112 @@ public class MistNode {
     public synchronized native int wishRequest(byte[] req); //will call  wish_app_core_with_cb_context
 
     void read(Endpoint ep, byte[] peerBson, final int requestId) {
-        Peer peer = new Peer(peerBson);
+        Peer peer = Peer.fromBson(peerBson);
+
+        if (peer == null) {
+            readError(ep.getEpid(), requestId, 347, "Invalid peer");
+            return;
+        }
 
         /* Check data type of endpoint */
-        if (ep.readCb instanceof ReadableInt) {
-            ((ReadableInt) ep.readCb).read(peer, new ReadableIntResponse(ep.epid, requestId));
-        } else if (ep.readCb instanceof  ReadableBool) {
-            ((ReadableBool) ep.readCb).read(peer, new ReadableBoolResponse(ep.epid, requestId));
-        } else if (ep.readCb instanceof  ReadableString) {
-            ((ReadableString) ep.readCb).read(peer, new ReadableStringResponse(ep.epid, requestId));
+        if (ep.getReadCb() instanceof ReadableInt) {
+            ((ReadableInt) ep.getReadCb()).read(peer, new ReadableIntResponse(ep.getEpid(), requestId));
+        } else if (ep.getReadCb() instanceof  ReadableBool) {
+            ((ReadableBool) ep.getReadCb()).read(peer, new ReadableBoolResponse(ep.getEpid(), requestId));
+        } else if (ep.getReadCb() instanceof  ReadableString) {
+            ((ReadableString) ep.getReadCb()).read(peer, new ReadableStringResponse(ep.getEpid(), requestId));
+        } else if (ep.getReadCb() instanceof ReadableFloat) {
+            ((ReadableFloat) ep.getReadCb()).read(peer, new ReadableFloatResponse(ep.getEpid(), requestId));
+        } else {
+            if (ep.getReadCb() == null) { readError(ep.getEpid(), requestId, 346, "No callback function registered"); }
+            else { readError(ep.getEpid(), requestId, 346, "Not supported callback function"); }
+            return;
         }
 
     }
 
     void write(Endpoint ep, byte[] peerBson, int requestId, byte[] args) {
-        Peer peer = new Peer(peerBson);
+        Peer peer = Peer.fromBson(peerBson);
 
-        if (ep.writeCb instanceof WritableBool) {
-            /* Read the value from BSON args.
-            * { args: <value> }
-            *
-            * if there is a BSON error, call writeError(ep.epid, requestId, 45, "Bad BSON structure");
-            * */
+        if (peer == null) {
+            writeError(ep.getEpid(), requestId, 347, "Invalid peer");
+            return;
+        }
 
+        if (ep.getWriteCb() instanceof WritableBool) {
 
-            boolean value = false;
-            ((WritableBool) ep.writeCb).write(value, peer, new WriteResponse(ep.epid, requestId));
-        } else if (ep.writeCb instanceof WritableInt) {
-            /* Read the value from BSON args. */
+            boolean value;
+            try {
+                BsonDocument bson = new RawBsonDocument(args);
+                value = bson.get("args").asBoolean().getValue();
+            } catch (BSONException e) {
+                writeError(ep.getEpid(), requestId, 452, "Bad BSON structure");
+                return;
+            }
 
-            int value = 0;
-            ((WritableInt) ep.writeCb).write(value, peer, new WriteResponse(ep.epid, requestId));
+            ((WritableBool) ep.getWriteCb()).write(value, peer, new WriteResponse(ep.getEpid(), requestId));
+
+        } else if (ep.getWriteCb() instanceof WritableInt) {
+
+            int value;
+            try {
+                BsonDocument bson = new RawBsonDocument(args);
+                value = bson.get("args").asInt32().getValue();
+            } catch (BSONException e) {
+                writeError(ep.getEpid(), requestId, 452, "Bad BSON structure");
+                return;
+            }
+
+            ((WritableInt) ep.getWriteCb()).write(value, peer, new WriteResponse(ep.getEpid(), requestId));
+
+        } else if (ep.getWriteCb() instanceof WritableFloat) {
+
+            float value;
+            try {
+                BsonDocument bson = new RawBsonDocument(args);
+                value = (float) bson.get("args").asDouble().getValue();
+            } catch (BSONException e) {
+                writeError(ep.getEpid(), requestId, 452, "Bad BSON structure");
+                return;
+            }
+
+            ((WritableFloat) ep.getWriteCb()).write(value, peer, new WriteResponse(ep.getEpid(), requestId));
+
+        } else if (ep.getWriteCb() instanceof WritableString) {
+
+            String value;
+            try {
+                BsonDocument bson = new RawBsonDocument(args);
+                value = bson.get("args").asString().getValue();
+            } catch (BSONException e) {
+                writeError(ep.getEpid(), requestId, 452, "Bad BSON structure");
+                return;
+            }
+
+            ((WritableString) ep.getWriteCb()).write(value, peer, new WriteResponse(ep.getEpid(), requestId));
+
+        } else {
+            if (ep.getWriteCb() == null) { writeError(ep.getEpid(), requestId, 346, "No callback function registered"); }
+            else { writeError(ep.getEpid(), requestId, 346, "Not supported callback function"); }
+            return;
         }
     }
 
     void invoke(Endpoint ep, byte[] peerBson, int requestId, byte[] args) {
-        Peer peer = new Peer(peerBson);
-        ep.invokeCb.invoke(args, peer, new InvokeResponse(ep.epid, requestId));
+
+        Peer peer = Peer.fromBson(peerBson);
+
+        if (peer == null) {
+            writeError(ep.getEpid(), requestId, 347, "Invalid peer");
+            return;
+        }
+
+        if (ep.getInvokeCb() == null) {
+            writeError(ep.getEpid(), requestId, 346, "No callback function registered");
+            return;
+        }
+
+        ep.getInvokeCb().invoke(args, peer, new InvokeResponse(ep.getEpid(), requestId));
     }
 
     void online(byte[] peerBson) {

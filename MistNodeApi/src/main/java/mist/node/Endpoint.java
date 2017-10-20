@@ -1,5 +1,10 @@
 package mist.node;
 
+import org.bson.BsonBinary;
+import org.bson.BsonBinaryWriter;
+import org.bson.BsonWriter;
+import org.bson.io.BasicOutputBuffer;
+
 import mist.Peer;
 
 /**
@@ -18,14 +23,18 @@ public class Endpoint {
     private String parent;
     private String id;
 
-    public String epid;
+    private String epid;
     private String label;
-    private String unit;
     private Type type;
+    private String unit;
 
     private boolean readable;
-    protected boolean writable;
+    private boolean writable;
     private boolean invokable;
+
+    private Readable readCb;
+    private Writable writeCb;
+    private Invokable invokeCb;
 
     public Endpoint(String epid) {
         /* Note: fullPath must be evaluated and parent field set accordingly */
@@ -34,17 +43,47 @@ public class Endpoint {
         parent = epid.substring(0, epid.lastIndexOf('.')+1);
     }
 
-    public Readable readCb;
+    public String getEpid() {
+        return epid;
+    }
 
-    public Writable writeCb;
+    public Endpoint setLabel(String label) {
+        this.label = label;
 
-    public Invokable invokeCb;
+        return this;
+    }
+
+    public String getLabel() {
+        return label;
+    }
 
     private void setType(Type type) {
         if (this.type != null && this.type != type) {
             throw new MistException("Type is already set to: " + type);
         }
         this.type = type;
+    }
+
+    public Type getType() {
+        return type;
+    }
+
+    public Endpoint setUnit(String unit) {
+        this.unit = unit;
+
+        return this;
+    }
+
+    public String getUnit() {
+        return unit;
+    }
+
+    public Endpoint setRead(ReadableBool readableCb) {
+        setType(Type.MIST_TYPE_BOOL);
+        readCb = readableCb;
+        readable = true;
+
+        return this;
     }
 
     public Endpoint setRead(ReadableInt readableCb) {
@@ -55,8 +94,8 @@ public class Endpoint {
         return this;
     }
 
-    public Endpoint setRead(ReadableBool readableCb) {
-        setType(Type.MIST_TYPE_BOOL);
+    public Endpoint setRead(ReadableFloat readableCb) {
+        setType(Type.MIST_TYPE_FLOAT);
         readCb = readableCb;
         readable = true;
 
@@ -71,6 +110,14 @@ public class Endpoint {
         return this;
     }
 
+    public Readable getReadCb() {
+        return readCb;
+    }
+
+    public boolean isReadable() {
+        return readable;
+    }
+
     public Endpoint setWrite(WritableBool writableCb) {
         setType(Type.MIST_TYPE_BOOL);
         writeCb = writableCb;
@@ -80,11 +127,35 @@ public class Endpoint {
     }
 
     public Endpoint setWrite(WritableInt writableCb) {
-        setType(Type.MIST_TYPE_BOOL);
+        setType(Type.MIST_TYPE_INT);
         writeCb = writableCb;
         writable = true;
 
         return this;
+    }
+
+    public Endpoint setWrite(WritableFloat writableCb) {
+        setType(Type.MIST_TYPE_FLOAT);
+        writeCb = writableCb;
+        writable = true;
+
+        return this;
+    }
+
+    public Endpoint setWrite(WritableString writableCb) {
+        setType(Type.MIST_TYPE_STRING);
+        writeCb = writableCb;
+        writable = true;
+
+        return this;
+    }
+
+    public Writable getWriteCb() {
+        return writeCb;
+    }
+
+    public boolean isWritable() {
+        return writable;
     }
 
     public Endpoint setInvoke(Invokable invokableCb) {
@@ -95,29 +166,20 @@ public class Endpoint {
         return this;
     }
 
+    public Invokable getInvokeCb() {
+        return invokeCb;
+    }
+
+    public boolean isInvokable() {
+        return invokable;
+    }
+
     public void changed() {
         MistNode.getInstance().changed(epid);
     }
 
-    public String getLabel() {
-        return label;
-    }
 
-    public Endpoint setLabel(String label) {
-        this.label = label;
-
-        return this;
-    }
-
-
-
-
-
-    public static class Readable {
-
-    }
-
-    public static class Response {
+    private static class Response {
         protected int requestId;
         protected String epid;
 
@@ -125,27 +187,28 @@ public class Endpoint {
             this.epid = epid;
             this.requestId = requestId;
         }
+    }
+
+    private static class Readable {
+    }
+
+    private static class ReadResponse extends Response{
+
+        public ReadResponse(String epid, int requestId) {
+            super(epid, requestId);
+            if (epid == null) {
+                error(453, "Response without epid");
+                return;
+            }
+
+            if (requestId == 0) {
+                error(453, "Response without requestId");
+                return;
+            }
+        }
 
         public void error(int code, String msg) {
             MistNode.getInstance().readError(epid, requestId, code, msg);
-        }
-    }
-
-    public static abstract class ReadableInt extends Readable {
-        public abstract void read(Peer peer, ReadableIntResponse response);
-    }
-
-    public static class ReadableIntResponse extends Response {
-
-        public ReadableIntResponse(String epid, int requestId) {
-            super(epid, requestId);
-        }
-        public void send(int value) {
-            /* The value must be marshalled into BSON document: { data: <value> } */
-
-            byte[] valueAsBson = null;
-
-            MistNode.getInstance().readResponse(epid, requestId, valueAsBson);
         }
     }
 
@@ -153,15 +216,62 @@ public class Endpoint {
         public abstract void read(Peer peer, ReadableBoolResponse response);
     }
 
-    public static class ReadableBoolResponse extends Response {
+    public static class ReadableBoolResponse extends ReadResponse {
         public ReadableBoolResponse(String epid, int requestId) {
             super(epid, requestId);
         }
         public void send(boolean value) {
-            /* The value must be marshalled into BSON document: { data: <value> } */
-            byte[] valueAsBson = null;
 
-            MistNode.getInstance().readResponse(epid, requestId, valueAsBson);
+            BasicOutputBuffer buffer = new BasicOutputBuffer();
+            BsonWriter writer = new BsonBinaryWriter(buffer);
+            writer.writeStartDocument();
+            writer.writeBoolean("data", value);
+            writer.writeEndDocument();
+            writer.flush();
+
+            MistNode.getInstance().readResponse(epid, requestId, buffer.toByteArray());
+        }
+    }
+
+    public static abstract class ReadableInt extends Readable {
+        public abstract void read(Peer peer, ReadableIntResponse response);
+    }
+
+    public static class ReadableIntResponse extends ReadResponse {
+        public ReadableIntResponse(String epid, int requestId) {
+            super(epid, requestId);
+        }
+        public void send(int value) {
+
+            BasicOutputBuffer buffer = new BasicOutputBuffer();
+            BsonWriter writer = new BsonBinaryWriter(buffer);
+            writer.writeStartDocument();
+                writer.writeInt32("data", value);
+            writer.writeEndDocument();
+            writer.flush();
+
+            MistNode.getInstance().readResponse(epid, requestId, buffer.toByteArray());
+        }
+    }
+
+    public static abstract class ReadableFloat extends Readable {
+        public abstract void read(Peer peer, ReadableFloatResponse response);
+    }
+
+    public static class ReadableFloatResponse extends ReadResponse {
+        public ReadableFloatResponse(String epid, int requestId) {
+            super(epid, requestId);
+        }
+        public void send(float value) {
+
+            BasicOutputBuffer buffer = new BasicOutputBuffer();
+            BsonWriter writer = new BsonBinaryWriter(buffer);
+            writer.writeStartDocument();
+            writer.writeDouble("data", value);
+            writer.writeEndDocument();
+            writer.flush();
+
+            MistNode.getInstance().readResponse(epid, requestId, buffer.toByteArray());
         }
     }
 
@@ -169,20 +279,25 @@ public class Endpoint {
         public abstract void read(Peer peer, ReadableStringResponse response);
     }
 
-    public static class ReadableStringResponse extends Response {
+    public static class ReadableStringResponse extends ReadResponse {
         public ReadableStringResponse(String epid, int requestId) {
             super(epid, requestId);
         }
         public void send(String value) {
-            /* The value must be marshalled into BSON document: { data: <value> } */
-            byte[] valueAsBson = null;
 
-            MistNode.getInstance().readResponse(epid, requestId, valueAsBson);
+            BasicOutputBuffer buffer = new BasicOutputBuffer();
+            BsonWriter writer = new BsonBinaryWriter(buffer);
+            writer.writeStartDocument();
+                writer.writeString("data", value);
+            writer.writeEndDocument();
+            writer.flush();
+
+            MistNode.getInstance().readResponse(epid, requestId, buffer.toByteArray());
         }
     }
 
 
-    public static class Writable {
+    private static class Writable {
 
     }
 
@@ -194,13 +309,34 @@ public class Endpoint {
         public abstract void write(int value, Peer peer, WriteResponse response);
     }
 
+    public static abstract class WritableFloat extends Writable {
+        public abstract void write(float value, Peer peer, WriteResponse response);
+    }
+
+    public static abstract class WritableString extends Writable {
+        public abstract void write(String value, Peer peer, WriteResponse response);
+    }
+
     public static class WriteResponse extends Response {
         public WriteResponse(String epid, int requestId) {
             super(epid, requestId);
+            if (epid == null) {
+                error(454, "Response without epid");
+                return;
+            }
+
+            if (requestId == 0) {
+                error(454, "Response without requestId");
+                return;
+            }
         }
 
         public void send() {
             MistNode.getInstance().writeResponse(epid, requestId);
+        }
+
+        public void error(int code, String msg) {
+            MistNode.getInstance().writeError(epid, requestId, code, msg);
         }
     }
 
@@ -211,10 +347,23 @@ public class Endpoint {
     public static class InvokeResponse extends Response {
         public InvokeResponse(String epid, int requestId) {
             super(epid, requestId);
+            if (epid == null) {
+                error(455, "Response without epid");
+                return;
+            }
+
+            if (requestId == 0) {
+                error(455, "Response without requestId");
+                return;
+            }
         }
 
         public void send(byte[] response) {
             MistNode.getInstance().invokeResponse(epid, requestId, response);
+        }
+
+        public void error(int code, String msg) {
+            MistNode.getInstance().invokeError(epid, requestId, code, msg);
         }
     }
 
