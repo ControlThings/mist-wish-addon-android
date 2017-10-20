@@ -42,7 +42,12 @@ public class FlashLight {
         /* FIXME this might be moved to Mist.java:onCreate */
         MistNode.getInstance().startMistApp("Flashlight", context);
 
-        mist = new Endpoint("mist");
+        mist = new Endpoint("mist").setRead(new Endpoint.ReadableString() {
+            @Override
+            public void read(Peer peer, Endpoint.ReadableStringResponse response) {
+                response.send("");
+            }
+        });
         mistName = new Endpoint("mist.name").setRead(new Endpoint.ReadableString() {
             @Override
             public void read(Peer peer, Endpoint.ReadableStringResponse response) {

@@ -41,8 +41,14 @@ public class Endpoint {
     public Endpoint(String epid) {
         /* Note: fullPath must be evaluated and parent field set accordingly */
         this.epid = epid;
-        id = epid.substring(epid.lastIndexOf('.')+1);
-        parent = epid.substring(0, epid.lastIndexOf('.')+1);
+        if (epid.lastIndexOf('.') == -1) {
+            id = epid;
+            parent = null;
+        }
+        else {
+            id = epid.substring(epid.lastIndexOf('.')+1);
+            parent = epid.substring(0, epid.lastIndexOf('.'));
+        }
     }
 
     public String getEpid() {
