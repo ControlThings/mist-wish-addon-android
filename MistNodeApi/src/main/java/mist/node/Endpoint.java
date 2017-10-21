@@ -3,9 +3,14 @@ package mist.node;
 import android.util.Log;
 
 import org.bson.BsonBinary;
+import org.bson.BsonBinaryReader;
 import org.bson.BsonBinaryWriter;
+import org.bson.BsonDocument;
+import org.bson.BsonDocumentReader;
+import org.bson.BsonReader;
 import org.bson.BsonWriter;
 import org.bson.io.BasicOutputBuffer;
+import org.bson.io.ByteBufferBsonInput;
 
 import mist.Peer;
 
@@ -365,6 +370,7 @@ public class Endpoint {
         }
 
         public void send(byte[] response) {
+            /* Note: the response will be wrapped to a document named 'data' on the JNI side */
             MistNode.getInstance().invokeResponse(epid, requestId, response);
         }
 

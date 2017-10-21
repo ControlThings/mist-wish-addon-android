@@ -32,17 +32,35 @@ public class Peer implements Serializable {
         Peer peer = new Peer();
         try {
             BsonDocument bsonDocument = new RawBsonDocument(data);
-            peer.luid = bsonDocument.get("luid").asBinary().getData();
-            peer.ruid = bsonDocument.get("ruid").asBinary().getData();
-            peer.rhid = bsonDocument.get("rhid").asBinary().getData();
-            peer.rsid = bsonDocument.get("rsid").asBinary().getData();
-            peer.protocol = bsonDocument.get("protocol").asString().getValue();
-            peer.online = bsonDocument.get("online").asBoolean().getValue();
+            if (bsonDocument.containsKey("luid")
+                && bsonDocument.containsKey("ruid")
+                && bsonDocument.containsKey("rhid")
+                && bsonDocument.containsKey("protocol")
+                && bsonDocument.containsKey("online")) {
 
-            if (peer.luid.length != WISH_UID_LEN) { return null; }
-            if (peer.ruid.length != WISH_UID_LEN) { return null; }
-            if (peer.rhid.length != WISH_UID_LEN) { return null; }
-            if (peer.rsid.length != WISH_UID_LEN) { return null; }
+                peer.luid = bsonDocument.get("luid").asBinary().getData();
+                peer.ruid = bsonDocument.get("ruid").asBinary().getData();
+                peer.rhid = bsonDocument.get("rhid").asBinary().getData();
+                peer.rsid = bsonDocument.get("rsid").asBinary().getData();
+                peer.protocol = bsonDocument.get("protocol").asString().getValue();
+                peer.online = bsonDocument.get("online").asBoolean().getValue();
+
+                if (peer.luid.length != WISH_UID_LEN) {
+                    return null;
+                }
+                if (peer.ruid.length != WISH_UID_LEN) {
+                    return null;
+                }
+                if (peer.rhid.length != WISH_UID_LEN) {
+                    return null;
+                }
+                if (peer.rsid.length != WISH_UID_LEN) {
+                    return null;
+                }
+            }
+            else {
+                return null;
+            }
 
         } catch (BSONException e) {
             return null;

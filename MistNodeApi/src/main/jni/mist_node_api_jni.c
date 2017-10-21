@@ -63,17 +63,14 @@ static jmethodID get_methodID(JNIEnv *env, jobject instance, char *method_name, 
         return NULL;
     }
 
-    android_wish_printf("in get_methodid 1");
-
     jclass clazz = (*env)->GetObjectClass(env, instance);
-    android_wish_printf("in get_methodid 2 %x", clazz);
+
     jmethodID method_id = (*env)->GetMethodID(env, clazz, method_name, signature);
     if (method_id == NULL) {
         android_wish_printf("get_methodID: Cannot get method %s with signature %s", method_name, signature);
         return NULL;
     }
 
-android_wish_printf("in get_methodid ret");
     return method_id;
 }
 
@@ -115,37 +112,35 @@ static enum mist_error hw_read(mist_ep *ep,  wish_protocol_peer_t* peer, int req
         return MIST_ERROR;
     }
 
-    android_wish_printf("Serialise peer to bson %x request_id %i", peer, request_id);
+
+    bson bs;
+    bson_init(&bs);
+
     /* Serialise peer to BSON */
     if (peer != NULL) {
-        bson bs;
-        bson_init(&bs);
         bson_append_peer(&bs, NULL, peer);
-        bson_finish(&bs);
+    }
+    bson_finish(&bs);
 
-        android_wish_printf("Create peer array");
-        jbyteArray java_peer = (*env)->NewByteArray(env, bson_size(&bs));
-        if (java_peer == NULL) {
-            android_wish_printf("Failed creating peer byte array");
-            return MIST_ERROR;
-        }
+    jbyteArray java_peer = (*env)->NewByteArray(env, bson_size(&bs));
+    if (java_peer == NULL) {
+        android_wish_printf("Failed creating peer byte array");
+        return MIST_ERROR;
+    }
+    if (bson_size(&bs) > 0 ) {
         (*env)->SetByteArrayRegion(env, java_peer, 0, bson_size(&bs), (const jbyte *) bson_data(&bs));
-        android_wish_printf("Call method");
-        (*env)->CallVoidMethod(env, mistNodeInstance, readMethodId, ep_data->endpoint_object, java_peer, request_id);
-        (*env)->DeleteLocalRef(env, java_peer);
-        bson_destroy(&bs);
     }
-    else {
-        /* peer is null, call the read method with null peer excplicitly */
-        jbyteArray java_peer = (*env)->NewByteArray(env, 0);
-        (*env)->CallVoidMethod(env, mistNodeInstance, readMethodId, ep_data->endpoint_object, java_peer, request_id);
-    }
+
+    (*env)->CallVoidMethod(env, mistNodeInstance, readMethodId, ep_data->endpoint_object, java_peer, request_id);
+    (*env)->DeleteLocalRef(env, java_peer);
+    bson_destroy(&bs);
 
     if (did_attach) {
         detachThread(javaVM);
     }
 
     android_wish_printf("Exit");
+    retval = MIST_NO_ERROR;
     return retval;
 }
 
@@ -162,12 +157,10 @@ static enum mist_error hw_write(mist_ep *ep, wish_protocol_peer_t* peer, int req
         return MIST_ERROR;
     }
 
-android_wish_printf("in hw_write 1");
     if (getJNIEnv(javaVM, &env, &did_attach)) {
         android_wish_printf("Method invocation failure, could not get JNI env");
         return MIST_ERROR;
     }
-    android_wish_printf("in hw_write 1a");
 
     /* Invoke method "write", signature (Lmist/node/Endpoint;[BI[B)V */
     jmethodID write_method_id = get_methodID(env, mistNodeInstance, "write", "(Lmist/node/Endpoint;[BI[B)V");
@@ -175,7 +168,6 @@ android_wish_printf("in hw_write 1");
         android_wish_printf("hw_write, Cannot find write method!");
         return MIST_ERROR;
     }
-    android_wish_printf("in hw_write 2");
 
     char epid[MIST_EPID_LEN] = { 0 };
     mist_ep_full_epid(ep, epid);
@@ -185,7 +177,6 @@ android_wish_printf("in hw_write 1");
         return MIST_ERROR;
     }
 
-android_wish_printf("in hw_write 3");
     bson bs;
     bson_init(&bs);
     /* Serialise peer to BSON */
@@ -194,7 +185,6 @@ android_wish_printf("in hw_write 3");
     }
     bson_finish(&bs);
 
-    android_wish_printf("Create peer array");
     jbyteArray java_peer = (*env)->NewByteArray(env, bson_size(&bs));
     if (java_peer == NULL) {
         android_wish_printf("Failed creating peer byte array");
@@ -204,7 +194,6 @@ android_wish_printf("in hw_write 3");
         (*env)->SetByteArrayRegion(env, java_peer, 0, bson_size(&bs), (const jbyte *) bson_data(&bs));
     }
 
-    android_wish_printf("Create args array");
     jbyteArray java_args = NULL;
     if (args != NULL) {
         java_args = (*env)->NewByteArray(env, bson_size(args));
@@ -222,7 +211,6 @@ android_wish_printf("in hw_write 3");
         (*env)->SetByteArrayRegion(env, java_args, 0, bson_size(args), (const jbyte *) bson_data(args));
     }
 
-    android_wish_printf("Call method");
     (*env)->CallVoidMethod(env, mistNodeInstance, write_method_id, ep_data->endpoint_object, java_peer, request_id, java_args);
     (*env)->DeleteLocalRef(env, java_peer);
     (*env)->DeleteLocalRef(env, java_args);
@@ -231,14 +219,89 @@ android_wish_printf("in hw_write 3");
         detachThread(javaVM);
     }
     bson_destroy(&bs);
+    retval = MIST_NO_ERROR;
 
     return retval;
 }
 
-static enum mist_error hw_invoke(mist_ep *ep, wish_protocol_peer_t* peer, int id, bson* args) {
+static enum mist_error hw_invoke(mist_ep *ep, wish_protocol_peer_t* peer, int request_id, bson* args) {
     enum mist_error retval = MIST_ERROR;
-    android_wish_printf("in hw_invoke (NOT IMPLEMENTED)");
+    android_wish_printf("in hw_invoke");
 
+    JNIEnv *env = NULL;
+    bool did_attach = false;
+
+    if (javaVM == NULL) {
+        android_wish_printf("hw_write, javaVM is NULL!");
+        return MIST_ERROR;
+    }
+
+    if (getJNIEnv(javaVM, &env, &did_attach)) {
+        android_wish_printf("Method invocation failure, could not get JNI env");
+        return MIST_ERROR;
+    }
+
+    /* Invoke method "invoke", signature (Lmist/node/Endpoint;[BI[B)V */
+    jmethodID invoke_method_id = get_methodID(env, mistNodeInstance, "invoke", "(Lmist/node/Endpoint;[BI[B)V");
+    if (invoke_method_id == NULL) {
+        android_wish_printf("hw_invoke, Cannot find invoke method!");
+        return MIST_ERROR;
+    }
+
+    char epid[MIST_EPID_LEN] = { 0 };
+    mist_ep_full_epid(ep, epid);
+    struct endpoint_data *ep_data = lookup_ep_data_by_epid(epid);
+    if (ep_data == NULL) {
+        android_wish_printf("in hw_invoke, could not find ep_data for %s!", epid);
+        return MIST_ERROR;
+    }
+
+    bson bs;
+    bson_init(&bs);
+    /* Serialise peer to BSON */
+    if (peer != NULL) {
+        bson_append_peer(&bs, NULL, peer);
+    }
+    bson_finish(&bs);
+
+    jbyteArray java_peer = (*env)->NewByteArray(env, bson_size(&bs));
+    if (java_peer == NULL) {
+        android_wish_printf("Failed creating peer byte array");
+        return MIST_ERROR;
+    }
+    if (bson_size(&bs) > 0) {
+        (*env)->SetByteArrayRegion(env, java_peer, 0, bson_size(&bs), (const jbyte *) bson_data(&bs));
+    }
+
+    jbyteArray java_args = NULL;
+    if (args != NULL) {
+        java_args = (*env)->NewByteArray(env, bson_size(args));
+    }
+    else {
+        java_args = (*env)->NewByteArray(env, 0);
+    }
+
+    if (java_args == NULL) {
+        android_wish_printf("Failed creating args byte array");
+        return MIST_ERROR;
+    }
+
+    if (args != NULL) {
+        (*env)->SetByteArrayRegion(env, java_args, 0, bson_size(args), (const jbyte *) bson_data(args));
+    }
+
+    (*env)->CallVoidMethod(env, mistNodeInstance, invoke_method_id, ep_data->endpoint_object, java_peer, request_id, java_args);
+    (*env)->DeleteLocalRef(env, java_peer);
+    (*env)->DeleteLocalRef(env, java_args);
+
+    if (did_attach) {
+        detachThread(javaVM);
+    }
+    bson_destroy(&bs);
+
+
+
+    retval = MIST_NO_ERROR;
     return retval;
 }
 
@@ -554,8 +617,40 @@ JNIEXPORT void JNICALL Java_mist_node_MistNode_writeError(JNIEnv *env, jobject j
  * Method:    invokeResponse
  * Signature: (Ljava/lang/String;I[B)V
  */
-JNIEXPORT void JNICALL Java_mist_node_MistNode_invokeResponse(JNIEnv *env, jobject java_this, jstring java_epid, jint request_id, jbyteArray java_result) {
+JNIEXPORT void JNICALL Java_mist_node_MistNode_invokeResponse(JNIEnv *env, jobject java_this, jstring java_epid, jint request_id, jbyteArray java_data) {
+    android_wish_printf("in invokeResponse");
 
+    if (java_data == NULL) {
+        android_wish_printf("in invokeResponse: java_data is NULL");
+        return;
+    }
+
+    if (java_epid == NULL) {
+        android_wish_printf("in invokeResponse: java_epid is NULL");
+        return;
+    }
+    size_t data_length = (*env)->GetArrayLength(env, java_data);
+    uint8_t *data = (uint8_t *) calloc(data_length, 1);
+    if (data == NULL) {
+        android_wish_printf("Malloc fails");
+        return;
+    }
+    (*env)->GetByteArrayRegion(env, java_data, 0, data_length, data);
+
+    char *epid_str =  (char*) (*env)->GetStringUTFChars(env, java_epid, NULL);
+
+    bson data_bs;
+    bson_init_with_data(&data_bs, data);
+
+    bson bs;
+    bson_init(&bs);
+    bson_append_bson(&bs, "data", &data_bs);
+    bson_finish(&bs);
+    mist_invoke_response(model->mist_app, epid_str, request_id, &bs);
+
+    (*env)->ReleaseStringUTFChars(env, java_epid, epid_str);
+    bson_destroy(&bs);
+    free(data);
 }
 
 /*
@@ -564,7 +659,18 @@ JNIEXPORT void JNICALL Java_mist_node_MistNode_invokeResponse(JNIEnv *env, jobje
  * Signature: (Ljava/lang/String;IILjava/lang/String;)V
  */
 JNIEXPORT void JNICALL Java_mist_node_MistNode_invokeError(JNIEnv *env, jobject java_this, jstring java_epid, jint request_id, jint code, jstring java_msg) {
+    android_wish_printf("in invokeError");
+    if (java_epid == NULL) {
+        android_wish_printf("in invokeError: java_epid is NULL");
+        return;
+    }
+    char *epid_str =  (char*) (*env)->GetStringUTFChars(env, java_epid, NULL);
+    char *msg_str = (char*) (*env)->GetStringUTFChars(env, java_msg, NULL);
 
+    mist_invoke_error(model->mist_app, epid_str, request_id, code, msg_str);
+
+    (*env)->ReleaseStringUTFChars(env, java_epid, epid_str);
+    (*env)->ReleaseStringUTFChars(env, java_msg, msg_str);
 }
 
 /*
@@ -573,7 +679,16 @@ JNIEXPORT void JNICALL Java_mist_node_MistNode_invokeError(JNIEnv *env, jobject 
  * Signature: (Ljava/lang/String;)V
  */
 JNIEXPORT void JNICALL Java_mist_node_MistNode_changed(JNIEnv *env, jobject java_this, jstring java_epid) {
+    android_wish_printf("in changed");
+    if (java_epid == NULL) {
+        android_wish_printf("in changed: java_epid is NULL");
+        return;
+    }
+    char *epid_str =  (char*) (*env)->GetStringUTFChars(env, java_epid, NULL);
 
+    mist_value_changed(model->mist_app, epid_str);
+
+    (*env)->ReleaseStringUTFChars(env, java_epid, epid_str);
 }
 
 
