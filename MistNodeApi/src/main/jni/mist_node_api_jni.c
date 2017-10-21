@@ -139,7 +139,6 @@ static enum mist_error hw_read(mist_ep *ep,  wish_protocol_peer_t* peer, int req
         detachThread(javaVM);
     }
 
-    android_wish_printf("Exit");
     retval = MIST_NO_ERROR;
     return retval;
 }
@@ -314,7 +313,6 @@ char *get_string_from_obj_field(JNIEnv *env, jobject java_obj, char *field_name)
         return NULL;
     }
 
-android_wish_printf("in get_string_from_obj_field: 1");
     /* Get "id" field, a String */
     jfieldID field_id = (*env)->GetFieldID(env, java_class, field_name, "Ljava/lang/String;");
     if (field_id == NULL) {
@@ -322,19 +320,18 @@ android_wish_printf("in get_string_from_obj_field: 1");
         return NULL;
     }
 
-    android_wish_printf("in get_string_from_obj_field: 2");
     jobject java_string = (*env)->GetObjectField(env, java_obj, field_id);
     if (java_string == NULL) {
         android_wish_printf("Could not get String for %s", field_name);
         return NULL;
     }
-    android_wish_printf("in get_string_from_obj_field: 3");
+
     char *str =  (char*) (*env)->GetStringUTFChars(env, java_string, NULL);
     if (str == NULL) {
         android_wish_printf("Could not GetStringUTF of field %s", field_name);
         return NULL;
     }
-android_wish_printf("in get_string_from_obj_field: 4");
+
     char *copy = strdup(str);
     (*env)->ReleaseStringUTFChars(env, java_string, str);
 
@@ -419,36 +416,27 @@ JNIEXPORT void JNICALL Java_mist_node_MistNode_addEndpoint(JNIEnv *env, jobject 
         return;
     }
 
-    android_wish_printf("in addEndpoint 1");
-
     char *epid_str = get_string_from_obj_field(env, java_Endpoint, "epid");
 
     if (epid_str == NULL) {
         android_wish_printf("addEndpoint: epid is null!");
         return;
     }
-    android_wish_printf("in addEndpoint 2");
 
     /* Get "label" field, a String */
 
     char *label_str = get_string_from_obj_field(env, java_Endpoint, "label");
 
-android_wish_printf("in addEndpoint 3");
-
     /* Get "type" field, an int */
     jfieldID typeField = (*env)->GetFieldID(env, endpointClass, "type", "I");
     jint type = (*env)->GetIntField(env, java_Endpoint, typeField);
 
-   android_wish_printf("in addEndpoint 3a");
     /* Get "unit" field, a String */
 
     char* unit_str = get_string_from_obj_field(env, java_Endpoint, "unit");
-    android_wish_printf("in addEndpoint 4");
 
     char *id_str = get_string_from_obj_field(env, java_Endpoint, "id");
     char *parent_epid_str = get_string_from_obj_field(env, java_Endpoint, "parent");
-
-    android_wish_printf("in addEndpoint 5");
 
     android_wish_printf("addEndpoint, epid: %s, id: %s, label: %s, parent full path: %s, type: %i, unit: %s", epid_str, id_str, label_str, parent_epid_str, type, unit_str);
 
@@ -460,7 +448,7 @@ android_wish_printf("in addEndpoint 3");
     memset(ep_data, 0, sizeof (struct endpoint_data));
 
     ep_data->endpoint_object = (*env)->NewGlobalRef(env, java_Endpoint);
-    ep_data->epid = strdup(epid_str);
+    ep_data->epid = epid_str;
 
 
     /* Get readable boolean */
@@ -508,9 +496,6 @@ android_wish_printf("in addEndpoint 3");
         free(parent_epid_str);
     }
 
-    /* Clean up the (temporary) references we've created */
-
-    android_wish_printf("exiting addEndpoint");
 }
 
 /*

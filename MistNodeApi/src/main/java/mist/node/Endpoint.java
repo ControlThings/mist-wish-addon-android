@@ -9,6 +9,7 @@ import org.bson.BsonDocument;
 import org.bson.BsonDocumentReader;
 import org.bson.BsonReader;
 import org.bson.BsonWriter;
+import org.bson.RawBsonDocument;
 import org.bson.io.BasicOutputBuffer;
 import org.bson.io.ByteBufferBsonInput;
 
@@ -370,7 +371,9 @@ public class Endpoint {
         }
 
         public void send(byte[] response) {
-            /* Note: the response will be wrapped to a document named 'data' on the JNI side */
+            /* Note: the response will be wrapped to a document named 'data' on the JNI side
+             * FIXME this should be modified so that all the send()s of  would work the same - either wrap in 'data' on this side, or on the JNI side. */
+
             MistNode.getInstance().invokeResponse(epid, requestId, response);
         }
 
