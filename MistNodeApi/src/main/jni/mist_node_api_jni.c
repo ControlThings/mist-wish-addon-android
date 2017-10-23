@@ -30,6 +30,7 @@ To re-create JNI interface:
 
 #include "utlist.h"
 #include "filesystem.h"
+#include "bson_visit.h"
 
 
 static JavaVM *javaVM;
@@ -689,4 +690,428 @@ JavaVM *getJavaVM(void) {
 
 jobject getMistNodeApiInstance() {
     return mistNodeInstance;
+}
+
+
+/*  Enter critical section
+    Obtain the monitor (mutex) of the MistNode class instance.
+ Returns 0 for a successful gaining of the monitor, or -1 for an error.
+ */
+static int enter_MistNode_monitor(void) {
+    JNIEnv * my_env = NULL;
+    bool did_attach = false;
+    if (getJNIEnv(javaVM, &my_env, &did_attach)) {
+        android_wish_printf("Method invocation failure, could not get JNI env");
+        return -1;
+    }
+
+    if ((*my_env)->MonitorEnter(my_env, mistNodeInstance) != 0) {
+        android_wish_printf("Error while entering monitor");
+        return -1;
+    }
+
+    if (did_attach) {
+        detachThread(javaVM);
+    }
+    return 0;
+}
+
+/*  Exit critical section:
+    Release the monitor associated with the MistNode class instance.
+    Returns 0 for a successful release of the monitor, or -1 for an error.
+ */
+static int exit_MistNode_monitor(void) {
+    JNIEnv * my_env = NULL;
+    bool did_attach = false;
+    if (getJNIEnv(javaVM, &my_env, &did_attach)) {
+        android_wish_printf("Method invocation failure, could not get JNI env");
+        return -1;
+    }
+
+    if ((*my_env)->MonitorExit(my_env, mistNodeInstance) != 0) {
+        android_wish_printf("Error while exiting monitor");
+        return -1;
+    }
+
+    if (did_attach) {
+        detachThread(javaVM);
+    }
+    return 0;
+}
+
+/* Uncomment this, if you do not wish that JNI code will call exit() when it detects an exception */
+#define DIE_OF_EXCEPTION
+
+/* To easily spot exceptions that are handled by this: ~/Android/Sdk/platform-tools/adb logcat | grep -A 3 -B 0 "Java exception" */
+void check_and_report_exception(JNIEnv *env) {
+    if ((*env)->ExceptionCheck(env)) {
+        android_wish_printf("Detected a Java exception, output from ExceptionDescribe:");
+        (*env)->ExceptionDescribe(env);
+#ifdef DIE_OF_EXCEPTION
+        const char* error_str = "Exiting because of exception detected in JNI";
+        android_wish_printf(error_str);
+        (*env)->FatalError(env, error_str);
+#else
+        /* Just "catch" the exception and do nothing about it */
+        android_wish_printf("Just clearning the Java exception!");
+        (*env)->ExceptionClear(env);
+#endif
+    }
+}
+
+/** Linked list element of a RPC requests sent by us. It is used to keep track of callback objects and RPC ids. */
+struct callback_list_elem {
+    /** The RPC id associated with the callback entry */
+    int request_id;
+    /** The Java object (global) reference which will contain the callback methods: ack, sig, err... Remember to delete the global reference when callback is no longer needed! */
+    jobject cb_obj;
+    /** The next item in the list */
+    struct callback_list_elem *next;
+};
+
+/** The linked list head of Mist RPC requests sent by us */
+struct callback_list_elem *mist_cb_list_head = NULL;
+
+/** The linked list head of Wish RPC requests sent by us */
+struct callback_list_elem *wish_cb_list_head = NULL;
+
+/**
+ * This call-back method is invoked both for Mist and Wish RPC requests. It will call methods of the callback object associated with the request id
+ */
+static void generic_callback(struct wish_rpc_entry* req, void *ctx, const uint8_t *payload, size_t payload_len) {
+    WISHDEBUG(LOG_CRITICAL, "Callback invoked!");
+    bson_visit("Callback invoked!", payload);
+
+    /* First decide if this callback is a Mist or Wish callback - this determines which callback list we will examine */
+    struct callback_list_elem *cb_list_head = NULL;
+    if (req->client == &(model->mist_app->protocol.rpc_client)) {
+        cb_list_head = mist_cb_list_head;
+    }
+    else if (req->client == &(app->rpc_client)) {
+        cb_list_head = wish_cb_list_head;
+    }
+    else {
+        android_wish_printf("Could not determine the kind of request callback for rpc id: %i", req->id);
+        return;
+    }
+
+    bool did_attach = false;
+    JNIEnv * my_env = NULL;
+    if (getJNIEnv(javaVM, &my_env, &did_attach)) {
+        android_wish_printf("Method invocation failure, could not get JNI env");
+        return;
+    }
+
+    int req_id = 0;
+
+    bool is_ack = false;
+    bool is_sig = false;
+    bool is_err = false;
+
+    bson_iterator it;
+    bson_find_from_buffer(&it, payload, "ack");
+    if (bson_iterator_type(&it) == BSON_INT) {
+        req_id = bson_iterator_int(&it);
+        if (req_id != 0) {
+            is_ack = true;
+        }
+        WISHDEBUG(LOG_CRITICAL, "Request ack %i", req_id);
+    }
+
+    bson_find_from_buffer(&it, payload, "sig");
+    if (bson_iterator_type(&it) == BSON_INT) {
+        req_id = bson_iterator_int(&it);
+        if (req_id != 0) {
+            is_sig = true;
+        }
+        WISHDEBUG(LOG_CRITICAL, "Request sig %i", req_id);
+    }
+
+    bson_find_from_buffer(&it, payload, "err");
+    if (bson_iterator_type(&it) == BSON_INT) {
+        req_id = bson_iterator_int(&it);
+        if (req_id != 0) {
+            is_err = true;
+        }
+        WISHDEBUG(LOG_CRITICAL, "Request err %i", req_id);
+    }
+
+    if (!is_ack && !is_sig && !is_err) {
+        WISHDEBUG(LOG_CRITICAL, "Not ack, sig or err!");
+        return;
+    }
+
+    jobject cb_obj = NULL;
+    struct callback_list_elem *elem = NULL;
+    struct callback_list_elem *tmp = NULL;
+
+    /* Enter Critical section */
+    if (enter_MistNode_monitor() == 0) {
+        LL_FOREACH_SAFE(cb_list_head, elem, tmp) {
+            if (elem->request_id == req_id) {
+                cb_obj = elem->cb_obj;
+                if (is_ack || is_err) {
+                    WISHDEBUG(LOG_CRITICAL, "Removing cb_list element for id %i", req_id);
+                    LL_DELETE(cb_list_head, elem);
+                    free(elem);
+                }
+            }
+        }
+    }
+    else {
+        WISHDEBUG(LOG_CRITICAL, "There was a critical error while trying to enter critical section");
+        return;
+    }
+
+    /* Exit critical section */
+    if (exit_MistNode_monitor() != 0) {
+        WISHDEBUG(LOG_CRITICAL, "There was a critical error while trying to exit critical section");
+        return;
+    }
+
+
+    if (cb_obj == NULL) {
+        WISHDEBUG(LOG_CRITICAL, "Could not find the request from cb_list");
+        return;
+    }
+
+    /* cb_obj now has the call-up object reference */
+    jclass cbClass = (*my_env)->GetObjectClass(my_env, cb_obj);
+    if (cbClass == NULL) {
+        WISHDEBUG(LOG_CRITICAL, "Cannot get Mist API callback class");
+        return;
+    }
+
+    jbyteArray java_data = NULL;
+    if (is_ack || is_sig) {
+        bson bs;
+        bson_init(&bs);
+
+        /* Find the data element from payload */
+        bson_find_from_buffer(&it, payload, "data");
+
+        bson_type type = bson_iterator_type(&it);
+
+        switch(type) {
+        case BSON_BOOL:
+            bson_append_bool(&bs, "data", bson_iterator_bool(&it));
+            break;
+        case BSON_INT:
+            bson_append_int(&bs, "data", bson_iterator_int(&it));
+            break;
+        case BSON_DOUBLE:
+            bson_append_double(&bs, "data", bson_iterator_double(&it));
+            break;
+        case BSON_STRING:
+        case BSON_OBJECT:
+        case BSON_ARRAY:
+        case BSON_BINDATA:
+            bson_append_element(&bs, "data", &it);
+            break;
+        case BSON_EOO:
+            WISHDEBUG(LOG_CRITICAL, "Unexpected end of BSON, no data");
+            break;
+        default:
+            WISHDEBUG(LOG_CRITICAL, "Unsupported bson type %i of data element", type);
+        }
+        bson_finish(&bs);
+
+        uint8_t *data_doc = (uint8_t *) bson_data(&bs);
+        size_t data_doc_len = bson_size(&bs);
+
+        java_data = (*my_env)->NewByteArray(my_env, data_doc_len);
+        if (java_data == NULL) {
+            WISHDEBUG(LOG_CRITICAL, "Failed creating java buffer for ack or sig data");
+            return;
+        }
+        (*my_env)->SetByteArrayRegion(my_env, java_data, 0, data_doc_len, (const jbyte *) data_doc);
+    }
+
+    if (is_ack) {
+        /* Invoke "ack" method of MistNode.RequestCb
+            public void ack(byte[]);
+              descriptor: ([B)V */
+        jmethodID ackMethodId = (*my_env)->GetMethodID(my_env, cbClass, "ack", "([B)V");
+        if (ackMethodId == NULL) {
+            WISHDEBUG(LOG_CRITICAL, "Cannot get ack method");
+            return;
+        }
+        (*my_env)->CallVoidMethod(my_env, cb_obj, ackMethodId, java_data);
+    } else if (is_sig) {
+        /* Invoke "sig" method of MistNode.RequestCb:
+          public void sig(byte[]);
+            descriptor: ([B)V
+        */
+        jmethodID sigMethodId = (*my_env)->GetMethodID(my_env, cbClass, "sig", "([B)V");
+        if (sigMethodId == NULL) {
+            WISHDEBUG(LOG_CRITICAL, "Cannot get sig method");
+            return;
+        }
+        (*my_env)->CallVoidMethod(my_env, cb_obj, sigMethodId, java_data);
+
+    } else if (is_err) {
+        int code = 0;
+        jobject java_msg = NULL;
+        const char *msg = NULL;
+
+        /* The response was an err. Get the code and msg fields from BSON */
+        if (bson_find_from_buffer(&it, payload, "data") == BSON_OBJECT) {
+            bson_iterator sit;
+            bson bs;
+            bson_init_with_data(&bs, payload);
+
+            bson_iterator_subiterator(&it, &sit);
+            if (bson_find_fieldpath_value("code", &sit) == BSON_INT) {
+                code = bson_iterator_int(&sit);
+            }
+            bson_iterator_subiterator(&it, &sit);
+            if (bson_find_fieldpath_value("msg", &sit) == BSON_STRING) {
+                WISHDEBUG(LOG_CRITICAL, "msg is STRING");
+                msg = bson_iterator_string(&sit);
+            }
+        }
+        else {
+            bson_find_from_buffer(&it, payload, "code");
+
+            if (bson_iterator_type(&it) == BSON_INT) {
+                code = bson_iterator_int(&it);
+            } else {
+                WISHDEBUG(LOG_CRITICAL, "err code is not of int type!");
+            }
+
+
+            bson_find_from_buffer(&it, payload, "msg");
+            if (bson_iterator_type(&it) == BSON_STRING) {
+                msg = bson_iterator_string(&it);
+            }
+        }
+
+        if (msg != NULL) {
+            /* Create a Java string from the msg */
+            java_msg = (*my_env)->NewStringUTF(my_env, msg);
+            if (java_msg == NULL) {
+                WISHDEBUG(LOG_CRITICAL, "Failed to create err msg Java String!");
+            }
+        }
+
+        WISHDEBUG(LOG_CRITICAL, "Request err code %i msg %s", code, msg);
+        /* Invoke "err" method of MistNode.RequestCb:
+           public abstract void err(int, java.lang.String);
+             descriptor: (ILjava/lang/String;)V
+         */
+        jmethodID errMethodId = (*my_env)->GetMethodID(my_env, cbClass, "err", "(ILjava/lang/String;)V");
+        if (errMethodId == NULL) {
+            WISHDEBUG(LOG_CRITICAL, "Cannot get sig method");
+            return;
+        }
+        (*my_env)->CallVoidMethod(my_env, cb_obj, errMethodId, code, java_msg);
+        if (java_msg != NULL) {
+            (*my_env)->DeleteLocalRef(my_env, java_msg);
+        }
+    }
+
+    /* Check if the any of the methods calls above threw an exception */
+    check_and_report_exception(my_env);
+
+    if (java_data != NULL) {
+        (*my_env)->DeleteLocalRef(my_env, java_data);
+    }
+
+    if (is_ack || is_err) {
+        (*my_env)->DeleteGlobalRef(my_env, cb_obj);
+    }
+
+    if (did_attach) {
+        detachThread(javaVM);
+    }
+}
+
+/** Build the complete RPC request BSON from the Java arguments, and save the callback object. At this point it does not matter if we are making a Mist or Wish request */
+static bool save_request(JNIEnv *env, struct callback_list_elem *cb_list_head, int request_id, jobject java_callback) {
+    /* Create Linked list entry */
+    struct callback_list_elem *elem = calloc(sizeof (struct callback_list_elem), 1);
+    if (elem == NULL) {
+        WISHDEBUG(LOG_CRITICAL, "Cannot allocate memory");
+        return false;
+    }
+    WISHDEBUG(LOG_CRITICAL, "Registering RPC id %i", request_id);
+    /* Create a global reference of the callback object and save the object in the linked list of requests */
+    elem->cb_obj = (*env)->NewGlobalRef(env, java_callback);
+    elem->request_id = request_id;
+    /* Note: No need to enter critical section here, because we are already owner of the RawApi monitor, because we have
+    entered via a "synchronized" native method. */
+    LL_APPEND(cb_list_head, elem);
+    return true;
+}
+
+/*
+ * Class:     mist_node_MistNode
+ * Method:    request
+ * Signature: ([B[BLmist/node/MistNode/RequestCb;)I
+ */
+JNIEXPORT jint JNICALL Java_mist_node_MistNode_request(JNIEnv *env, jobject java_this, jbyteArray java_peer, jbyteArray java_req, jobject callback_obj) {
+    /* Unmarshall the java_peer and java_req to normal arrays of bytes */
+    size_t peer_bson_len = (*env)->GetArrayLength(env, java_peer);
+    uint8_t *peer_bson = (uint8_t *) calloc(peer_bson_len, 1);
+    if (peer_bson == NULL) {
+        android_wish_printf("Malloc fails (peer)");
+        return 0;
+    }
+    (*env)->GetByteArrayRegion(env, java_peer, 0, peer_bson_len, peer_bson);
+
+    size_t req_bson_len = (*env)->GetArrayLength(env, java_req);
+    uint8_t *req_bson = (uint8_t *) calloc(req_bson_len, 1);
+    if (req_bson == NULL) {
+        android_wish_printf("Malloc fails (req)");
+        return 0;
+    }
+    (*env)->GetByteArrayRegion(env, java_req, 0, req_bson_len, req_bson);
+
+
+    /* Resolve the BSON peer to a wish_protocol_peer: wish_protocol_peer_find_from_bson */
+    wish_protocol_peer_t *peer = wish_protocol_peer_find_from_bson(&(model->mist_app->protocol), peer_bson);
+
+    if (peer == NULL) {
+        android_wish_printf("Could not find peer for request!");
+        return 0;
+    }
+
+    bson req_bs;
+    bson_init_with_data(&req_bs, req_bson);
+    /* Send down the request, with our generic_cb callback, save the request id. */
+    rpc_client_req *req = mist_app_request(model->mist_app, peer, &req_bs, generic_callback);
+
+    int request_id = req->id;
+    /* Save the mapping request_id -> callback object */
+    save_request(env, mist_cb_list_head, request_id, callback_obj);
+
+    free(peer_bson);
+    free(req_bson);
+    return request_id;
+}
+
+/*
+ * Class:     mist_node_MistNode
+ * Method:    wishRequest
+ * Signature: ([BLmist/node/MistNode/RequestCb;)I
+ */
+JNIEXPORT jint JNICALL Java_mist_node_MistNode_wishRequest(JNIEnv *env, jobject java_this, jbyteArray java_req, jobject callback_obj) {
+    size_t req_bson_len = (*env)->GetArrayLength(env, java_req);
+    uint8_t *req_bson = (uint8_t *) calloc(req_bson_len, 1);
+    if (req_bson == NULL) {
+        android_wish_printf("Malloc fails (req)");
+        return 0;
+    }
+    (*env)->GetByteArrayRegion(env, java_req, 0, req_bson_len, req_bson);
+
+    bson req_bs;
+    bson_init_with_data(&req_bs, req_bson);
+    rpc_client_req *req = wish_app_request(app, &req_bs, generic_callback, NULL);
+
+    int request_id = req->id;
+    save_request(env, wish_cb_list_head, request_id, callback_obj);
+
+    free(req_bson);
+
+    return request_id;
 }

@@ -63,14 +63,14 @@ public class MistNode {
      *
      * @param peer a BSON representation of the protocol peer
      * @param req a BSON representation of the RPC request, {op, args}
-     * @return the RPC id
+     * @return the RPC id; The invalid RPC id 0 is returned for any errors.
      */
     public synchronized native int request(byte[] peer, byte[] req, RequestCb cb); //will call mist_app_request
 
     /**
      * Send a Wish request to the local Wish core
      * @param req the request in BSON format
-     * @return the RPC id
+     * @return the RPC id; The invalid RPC id 0 is returned for any errors.
      */
     public synchronized native int wishRequest(byte[] req, RequestCb cb); //will call  wish_app_core_with_cb_context
 
