@@ -2,8 +2,11 @@ package mist;
 
 import android.content.Context;
 
+import java.util.ResourceBundle;
+
 import mist.node.Endpoint;
 import mist.node.MistNode;
+import mist.request.Control;
 
 /**
  * Created by jan on 10/19/17.
@@ -43,5 +46,18 @@ public class FlashLightRaw {
                     }
                 }));
 
+
+        Control.read(new Peer(), "", new Control.ReadCb() {
+            @Override
+            public void err(int code, String msg) {
+                super.err(code, msg);
+
+            }
+
+            @Override
+            public void cbInt(int data) {
+                super.cbInt(data);
+            }
+        });
     }
 }

@@ -65,7 +65,7 @@ public class MistNode {
      * @param req a BSON representation of the RPC request, {op, args}
      * @return the RPC id
      */
-    public synchronized native int nodeRequest(byte[] peer, byte[] req); //will call mist_app_request
+    public synchronized native int request(byte[] peer, byte[] req, RequestCb cb); //will call mist_app_request
 
     /**
      * Send a Wish request to the local Wish core
@@ -257,4 +257,36 @@ public class MistNode {
     }
 
 
+    public abstract static class RequestCb {
+
+        /**
+         * The callback invoked when "ack" is received for a RPC request
+         *
+         * @param data a document containing RPC return value as 'data' element
+         */
+        public void ack(byte[] data) {
+            response(data);
+            end();
+        };
+
+        /**
+         * The callback invoked when "sig" is received for a RPC request
+         *
+         * @param data the contents of 'data' element of the RPC reply
+         */
+        public void sig(byte[] data) {
+            response(data);
+        };
+
+        public abstract void response(byte[] data);
+        public abstract void end();
+
+        /**
+         * The callback invoked when "err" is received for a failed RPC request
+         *
+         * @param code the error code
+         * @param msg  a free-text error message
+         */
+        public abstract void err(int code, String msg);
+    }
 }
