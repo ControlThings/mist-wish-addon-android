@@ -775,19 +775,24 @@ struct callback_list_elem *mist_cb_list_head = NULL;
 /** The linked list head of Wish RPC requests sent by us */
 struct callback_list_elem *wish_cb_list_head = NULL;
 
+
+
 /**
  * This call-back method is invoked both for Mist and Wish RPC requests. It will call methods of the callback object associated with the request id
  */
 static void generic_callback(struct wish_rpc_entry* req, void *ctx, const uint8_t *payload, size_t payload_len) {
     WISHDEBUG(LOG_CRITICAL, "Callback invoked!");
     bson_visit("Callback invoked!", payload);
+    android_wish_printf("in generic callback");
 
     /* First decide if this callback is a Mist or Wish callback - this determines which callback list we will examine */
     struct callback_list_elem *cb_list_head = NULL;
     if (req->client == &(model->mist_app->protocol.rpc_client)) {
+        android_wish_printf("Response to Mist request");
         cb_list_head = mist_cb_list_head;
     }
     else if (req->client == &(app->rpc_client)) {
+        android_wish_printf("Response to Wish request");
         cb_list_head = wish_cb_list_head;
     }
     else {
@@ -1027,7 +1032,8 @@ static void generic_callback(struct wish_rpc_entry* req, void *ctx, const uint8_
 }
 
 /** Build the complete RPC request BSON from the Java arguments, and save the callback object. At this point it does not matter if we are making a Mist or Wish request */
-static bool save_request(JNIEnv *env, struct callback_list_elem *cb_list_head, int request_id, jobject java_callback) {
+static bool save_request(JNIEnv *env, struct callback_list_elem **cb_list_head, int request_id, jobject java_callback) {
+    android_wish_printf("in save_request, req id %i queue %p", request_id, cb_list_head);
     /* Create Linked list entry */
     struct callback_list_elem *elem = calloc(sizeof (struct callback_list_elem), 1);
     if (elem == NULL) {
@@ -1040,7 +1046,8 @@ static bool save_request(JNIEnv *env, struct callback_list_elem *cb_list_head, i
     elem->request_id = request_id;
     /* Note: No need to enter critical section here, because we are already owner of the RawApi monitor, because we have
     entered via a "synchronized" native method. */
-    LL_APPEND(cb_list_head, elem);
+    LL_APPEND(*cb_list_head, elem);
+    android_wish_printf("queue %p; %p %p", cb_list_head, mist_cb_list_head, wish_cb_list_head);
     return true;
 }
 
@@ -1050,6 +1057,7 @@ static bool save_request(JNIEnv *env, struct callback_list_elem *cb_list_head, i
  * Signature: ([B[BLmist/node/MistNode/RequestCb;)I
  */
 JNIEXPORT jint JNICALL Java_mist_node_MistNode_request(JNIEnv *env, jobject java_this, jbyteArray java_peer, jbyteArray java_req, jobject callback_obj) {
+    android_wish_printf("in request");
     /* Unmarshall the java_peer and java_req to normal arrays of bytes */
     size_t peer_bson_len = (*env)->GetArrayLength(env, java_peer);
     uint8_t *peer_bson = (uint8_t *) calloc(peer_bson_len, 1);
@@ -1083,10 +1091,11 @@ JNIEXPORT jint JNICALL Java_mist_node_MistNode_request(JNIEnv *env, jobject java
 
     int request_id = req->id;
     /* Save the mapping request_id -> callback object */
-    save_request(env, mist_cb_list_head, request_id, callback_obj);
+    save_request(env, &mist_cb_list_head, request_id, callback_obj);
 
     free(peer_bson);
     free(req_bson);
+    android_wish_printf("in request (exit)");
     return request_id;
 }
 
@@ -1109,7 +1118,7 @@ JNIEXPORT jint JNICALL Java_mist_node_MistNode_wishRequest(JNIEnv *env, jobject 
     rpc_client_req *req = wish_app_request(app, &req_bs, generic_callback, NULL);
 
     int request_id = req->id;
-    save_request(env, wish_cb_list_head, request_id, callback_obj);
+    save_request(env, &wish_cb_list_head, request_id, callback_obj);
 
     free(req_bson);
 
