@@ -79,3 +79,79 @@ int detachThread(JavaVM *javaVM) {
     }
     return retval;
 }
+
+
+/* Uncomment this, if you do not wish that JNI code will call exit() when it detects an exception */
+#define DIE_OF_EXCEPTION
+
+/* To easily spot exceptions that are handled by this: ~/Android/Sdk/platform-tools/adb logcat | grep -A 3 -B 0 "Java exception" */
+void check_and_report_exception(JNIEnv *env) {
+    if ((*env)->ExceptionCheck(env)) {
+        android_wish_printf("Detected a Java exception, output from ExceptionDescribe:");
+        (*env)->ExceptionDescribe(env);
+#ifdef DIE_OF_EXCEPTION
+        const char* error_str = "Exiting because of exception detected in JNI";
+        android_wish_printf(error_str);
+        (*env)->FatalError(env, error_str);
+#else
+        /* Just "catch" the exception and do nothing about it */
+        android_wish_printf("Just clearning the Java exception!");
+        (*env)->ExceptionClear(env);
+#endif
+    }
+}
+
+
+jmethodID get_methodID(JNIEnv *env, jobject instance, char *method_name, char* signature) {
+
+    if (instance == NULL) {
+        android_wish_printf("get_methodID, instance is NULL!");
+        return NULL;
+    }
+
+    jclass clazz = (*env)->GetObjectClass(env, instance);
+
+    jmethodID method_id = (*env)->GetMethodID(env, clazz, method_name, signature);
+    if (method_id == NULL) {
+        android_wish_printf("get_methodID: Cannot get method %s with signature %s", method_name, signature);
+        return NULL;
+    }
+
+    return method_id;
+}
+
+/*  Get String field from a Java object
+
+    Note: Caller is responsible for releasing the pointer returned from this function! Use free(). */
+char *get_string_from_obj_field(JNIEnv *env, jobject java_obj, char *field_name) {
+    android_wish_printf("in get_string_from_obj_field");
+    jclass java_class = (*env)->GetObjectClass(env, java_obj);
+    if (java_class == NULL) {
+        android_wish_printf("Could not resolve endpoint class while getting value for field name %s", field_name);
+        return NULL;
+    }
+
+    /* Get "id" field, a String */
+    jfieldID field_id = (*env)->GetFieldID(env, java_class, field_name, "Ljava/lang/String;");
+    if (field_id == NULL) {
+        android_wish_printf("Could not get field id for %s", field_name);
+        return NULL;
+    }
+
+    jobject java_string = (*env)->GetObjectField(env, java_obj, field_id);
+    if (java_string == NULL) {
+        android_wish_printf("Could not get String for %s", field_name);
+        return NULL;
+    }
+
+    char *str =  (char*) (*env)->GetStringUTFChars(env, java_string, NULL);
+    if (str == NULL) {
+        android_wish_printf("Could not GetStringUTF of field %s", field_name);
+        return NULL;
+    }
+
+    char *copy = strdup(str);
+    (*env)->ReleaseStringUTFChars(env, java_string, str);
+
+    return copy;
+}

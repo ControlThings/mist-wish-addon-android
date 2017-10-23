@@ -13,14 +13,11 @@
 /*
 To re-create JNI interface:
 
- 1. Renew header file using javah
-      javah -classpath ../../../../mistnodeapi/build/intermediates/classes/debug/:/home/jan/Android/Sdk/platforms/android-16/android.jar -o mist_node_api_jni.h mist.node.MistNodeApi
- 2. Fix .c file function names to correspond to new .h file
- 3. Fix all calls to java from c
-      from:
-        jfieldID invokeCallbackField = (*env)->GetFieldID(env, endpointClass, "invokeCallback", "Lfi/ct/mist/nodeApi/Endpoint$Invokable;");
-      to:
-        jfieldID invokeCallbackField = (*env)->GetFieldID(env, endpointClass, "invokeCallback", "Lmist/node/Endpoint$Invokable;");
+ To Renew header file using javah
+    javah -classpath ../../../../MistNodeApi/build/intermediates/classes/debug/:/home/jan/Android/Sdk/platforms/android-16/android.jar -o mist_node_api_jni.h mist.node.MistNode
+
+ To see a Java object's method signatures, use:
+    javap -s -classpath ../../../../MistNodeApi/build/intermediates/classes/debug/:/home/jan/Android/Sdk/platforms/android-16/android.jar mist.node.MistNode
 
 */
 #include "mist_node_api_jni.h"
@@ -55,24 +52,6 @@ static struct endpoint_data *lookup_ep_data_by_epid(char *epid) {
         }
     }
     return NULL;
-}
-
-static jmethodID get_methodID(JNIEnv *env, jobject instance, char *method_name, char* signature) {
-
-    if (instance == NULL) {
-        android_wish_printf("get_methodID, instance is NULL!");
-        return NULL;
-    }
-
-    jclass clazz = (*env)->GetObjectClass(env, instance);
-
-    jmethodID method_id = (*env)->GetMethodID(env, clazz, method_name, signature);
-    if (method_id == NULL) {
-        android_wish_printf("get_methodID: Cannot get method %s with signature %s", method_name, signature);
-        return NULL;
-    }
-
-    return method_id;
 }
 
 static enum mist_error hw_read(mist_ep *ep,  wish_protocol_peer_t* peer, int request_id) {
@@ -141,6 +120,9 @@ static enum mist_error hw_read(mist_ep *ep,  wish_protocol_peer_t* peer, int req
     }
 
     retval = MIST_NO_ERROR;
+
+    check_and_report_exception(env);
+
     return retval;
 }
 
@@ -219,6 +201,9 @@ static enum mist_error hw_write(mist_ep *ep, wish_protocol_peer_t* peer, int req
         detachThread(javaVM);
     }
     bson_destroy(&bs);
+
+    check_and_report_exception(env);
+
     retval = MIST_NO_ERROR;
 
     return retval;
@@ -299,45 +284,13 @@ static enum mist_error hw_invoke(mist_ep *ep, wish_protocol_peer_t* peer, int re
     }
     bson_destroy(&bs);
 
+    check_and_report_exception(env);
 
 
     retval = MIST_NO_ERROR;
     return retval;
 }
 
-/* Note: Caller is responsible for releasing the pointer returned from this function! Use free(). */
-char *get_string_from_obj_field(JNIEnv *env, jobject java_obj, char *field_name) {
-    android_wish_printf("in get_string_from_obj_field");
-    jclass java_class = (*env)->GetObjectClass(env, java_obj);
-    if (java_class == NULL) {
-        android_wish_printf("Could not resolve endpoint class while getting value for field name %s", field_name);
-        return NULL;
-    }
-
-    /* Get "id" field, a String */
-    jfieldID field_id = (*env)->GetFieldID(env, java_class, field_name, "Ljava/lang/String;");
-    if (field_id == NULL) {
-        android_wish_printf("Could not get field id for %s", field_name);
-        return NULL;
-    }
-
-    jobject java_string = (*env)->GetObjectField(env, java_obj, field_id);
-    if (java_string == NULL) {
-        android_wish_printf("Could not get String for %s", field_name);
-        return NULL;
-    }
-
-    char *str =  (char*) (*env)->GetStringUTFChars(env, java_string, NULL);
-    if (str == NULL) {
-        android_wish_printf("Could not GetStringUTF of field %s", field_name);
-        return NULL;
-    }
-
-    char *copy = strdup(str);
-    (*env)->ReleaseStringUTFChars(env, java_string, str);
-
-    return copy;
-}
 
 /*
  * Class:     mist_node_MistNode
@@ -479,7 +432,7 @@ JNIEXPORT void JNICALL Java_mist_node_MistNode_addEndpoint(JNIEnv *env, jobject 
 
     if (readable) { ep->read = hw_read; }
     if (writable) { ep->write = hw_write; }
-    if (invokable) { ep->invoke = hw_invoke; } //hw_invoke_function;
+    if (invokable) { ep->invoke = hw_invoke; }
 
     ep->unit = "";
     ep->next = NULL;
@@ -739,26 +692,6 @@ static int exit_MistNode_monitor(void) {
     return 0;
 }
 
-/* Uncomment this, if you do not wish that JNI code will call exit() when it detects an exception */
-#define DIE_OF_EXCEPTION
-
-/* To easily spot exceptions that are handled by this: ~/Android/Sdk/platform-tools/adb logcat | grep -A 3 -B 0 "Java exception" */
-void check_and_report_exception(JNIEnv *env) {
-    if ((*env)->ExceptionCheck(env)) {
-        android_wish_printf("Detected a Java exception, output from ExceptionDescribe:");
-        (*env)->ExceptionDescribe(env);
-#ifdef DIE_OF_EXCEPTION
-        const char* error_str = "Exiting because of exception detected in JNI";
-        android_wish_printf(error_str);
-        (*env)->FatalError(env, error_str);
-#else
-        /* Just "catch" the exception and do nothing about it */
-        android_wish_printf("Just clearning the Java exception!");
-        (*env)->ExceptionClear(env);
-#endif
-    }
-}
-
 /** Linked list element of a RPC requests sent by us. It is used to keep track of callback objects and RPC ids. */
 struct callback_list_elem {
     /** The RPC id associated with the callback entry */
@@ -778,21 +711,20 @@ struct callback_list_elem *wish_cb_list_head = NULL;
 
 
 /**
- * This call-back method is invoked both for Mist and Wish RPC requests. It will call methods of the callback object associated with the request id
+ * This call-back method is invoked both for Mist and Wish RPC requests.  It will call methods of the callback object associated with the request id
  */
 static void generic_callback(struct wish_rpc_entry* req, void *ctx, const uint8_t *payload, size_t payload_len) {
-    WISHDEBUG(LOG_CRITICAL, "Callback invoked!");
-    bson_visit("Callback invoked!", payload);
-    android_wish_printf("in generic callback");
+    //WISHDEBUG(LOG_CRITICAL, "Callback invoked!");
+    bson_visit("generic_callback invoked!", payload);
 
     /* First decide if this callback is a Mist or Wish callback - this determines which callback list we will examine */
     struct callback_list_elem **cb_list_head = NULL;
     if (req->client == &(model->mist_app->protocol.rpc_client)) {
-        android_wish_printf("Response to Mist request");
+        //android_wish_printf("Response to Mist request");
         cb_list_head = &mist_cb_list_head;
     }
     else if (req->client == &(app->rpc_client)) {
-        android_wish_printf("Response to Wish request");
+        //android_wish_printf("Response to Wish request");
         cb_list_head = &wish_cb_list_head;
     }
     else {
@@ -850,7 +782,7 @@ static void generic_callback(struct wish_rpc_entry* req, void *ctx, const uint8_
     struct callback_list_elem *elem = NULL;
     struct callback_list_elem *tmp = NULL;
 
-    /* Enter Critical section */
+    /* Enter Critical section to protect the cb lists from concurrent modification. Note that adding to the cb lists is protected by the same monitor, thanks to JNI interface being declared 'synchronous'. */
     if (enter_MistNode_monitor() == 0) {
         LL_FOREACH_SAFE(*cb_list_head, elem, tmp) {
             if (elem->request_id == req_id) {
@@ -1033,7 +965,7 @@ static void generic_callback(struct wish_rpc_entry* req, void *ctx, const uint8_
 
 /** Build the complete RPC request BSON from the Java arguments, and save the callback object. At this point it does not matter if we are making a Mist or Wish request */
 static bool save_request(JNIEnv *env, struct callback_list_elem **cb_list_head, int request_id, jobject java_callback) {
-    android_wish_printf("in save_request, req id %i queue %p", request_id, cb_list_head);
+    android_wish_printf("in save_request, req id %i", request_id);
     /* Create Linked list entry */
     struct callback_list_elem *elem = calloc(sizeof (struct callback_list_elem), 1);
     if (elem == NULL) {
@@ -1047,7 +979,7 @@ static bool save_request(JNIEnv *env, struct callback_list_elem **cb_list_head, 
     /* Note: No need to enter critical section here, because we are already owner of the RawApi monitor, because we have
     entered via a "synchronized" native method. */
     LL_APPEND(*cb_list_head, elem);
-    android_wish_printf("queue %p; %p %p", cb_list_head, mist_cb_list_head, wish_cb_list_head);
+    //android_wish_printf("queue %p; %p %p", cb_list_head, mist_cb_list_head, wish_cb_list_head);
     return true;
 }
 
