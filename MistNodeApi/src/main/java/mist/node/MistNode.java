@@ -72,7 +72,7 @@ public class MistNode {
      * @param req the request in BSON format
      * @return the RPC id
      */
-    public synchronized native int wishRequest(byte[] req); //will call  wish_app_core_with_cb_context
+    public synchronized native int wishRequest(byte[] req, RequestCb cb); //will call  wish_app_core_with_cb_context
 
     /**
      * Read function called by JNI code. This function is called when handling control.read, or whenever an update of the Endpoint's value is

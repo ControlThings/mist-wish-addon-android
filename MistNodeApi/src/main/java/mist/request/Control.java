@@ -13,9 +13,38 @@ import mist.node.MistNode;
 
 public class Control {
 
+    public static int model(Peer peer, ModelCb callback){
+        return ControlModel.request(peer, callback);
+    };
 
-    public static void read(Peer peer, String epid, Control.ReadCb callback) {
-        ControlRead.request(peer, epid, callback);
+    public static int write(Peer peer, String epid, Boolean state, Control.WriteCb callback) {
+        return ControlWrite.request(peer, epid, state, callback);
+    }
+    public static int write(Peer peer, String epid, int state, Control.WriteCb callback) {
+        return ControlWrite.request(peer, epid, state, callback);
+    }
+    public static int write(Peer peer, String epid, float state, Control.WriteCb callback) {
+        return ControlWrite.request(peer, epid, state, callback);
+    }
+    public static int write(Peer peer, String epid, String state, Control.WriteCb callback) {
+        return ControlWrite.request(peer, epid, state, callback);
+    }
+
+    public static int read(Peer peer, String epid, Control.ReadCb callback) {
+       return ControlRead.request(peer, epid, callback);
+    }
+
+    public static int invoke(Peer peer, String epid, byte[] bson, InvokeCb callback) {
+        return ControlInvoke.request(peer, epid, bson, callback);
+    }
+
+
+    public abstract static class ModelCb extends Callback {
+        public abstract void cb(BsonDocument data);
+    }
+
+    public abstract static class WriteCb extends Callback {
+        public abstract void cb();
     }
 
     public abstract static class ReadCb extends Callback {
@@ -25,4 +54,7 @@ public class Control {
         public void cbString(String data) {};
     }
 
+    public abstract static class InvokeCb extends Callback {
+        public abstract void cb(byte[] bson);
+    }
 }
