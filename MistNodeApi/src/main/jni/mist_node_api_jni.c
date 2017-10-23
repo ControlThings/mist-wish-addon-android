@@ -786,14 +786,14 @@ static void generic_callback(struct wish_rpc_entry* req, void *ctx, const uint8_
     android_wish_printf("in generic callback");
 
     /* First decide if this callback is a Mist or Wish callback - this determines which callback list we will examine */
-    struct callback_list_elem *cb_list_head = NULL;
+    struct callback_list_elem **cb_list_head = NULL;
     if (req->client == &(model->mist_app->protocol.rpc_client)) {
         android_wish_printf("Response to Mist request");
-        cb_list_head = mist_cb_list_head;
+        cb_list_head = &mist_cb_list_head;
     }
     else if (req->client == &(app->rpc_client)) {
         android_wish_printf("Response to Wish request");
-        cb_list_head = wish_cb_list_head;
+        cb_list_head = &wish_cb_list_head;
     }
     else {
         android_wish_printf("Could not determine the kind of request callback for rpc id: %i", req->id);
@@ -852,12 +852,12 @@ static void generic_callback(struct wish_rpc_entry* req, void *ctx, const uint8_
 
     /* Enter Critical section */
     if (enter_MistNode_monitor() == 0) {
-        LL_FOREACH_SAFE(cb_list_head, elem, tmp) {
+        LL_FOREACH_SAFE(*cb_list_head, elem, tmp) {
             if (elem->request_id == req_id) {
                 cb_obj = elem->cb_obj;
                 if (is_ack || is_err) {
                     WISHDEBUG(LOG_CRITICAL, "Removing cb_list element for id %i", req_id);
-                    LL_DELETE(cb_list_head, elem);
+                    LL_DELETE(*cb_list_head, elem);
                     free(elem);
                 }
             }
