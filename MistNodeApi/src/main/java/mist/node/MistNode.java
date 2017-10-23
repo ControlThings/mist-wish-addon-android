@@ -74,13 +74,16 @@ public class MistNode {
      */
     public synchronized native int wishRequest(byte[] req); //will call  wish_app_core_with_cb_context
 
-    void read(Endpoint ep, byte[] peerBson, final int requestId) {
+    /**
+     * Read function called by JNI code. This function is called when handling control.read, or whenever an update of the Endpoint's value is
+     * to be read, when satisfying a control.follow request perhaps after the Endpoint's value has been declared to have changed via MistNode.changed().
+     *
+     * @param ep Endpoint object to be read
+     * @param peerBson the peer in BSON format in case of control.read, or null if this is an internal read.
+     * @param requestId the request id
+     */
+    protected void read(Endpoint ep, byte[] peerBson, final int requestId) {
         Peer peer = Peer.fromBson(peerBson);
-
-        if (peer == null) {
-            readError(ep.getEpid(), requestId, 347, "Invalid peer");
-            return;
-        }
 
         /* Check data type of endpoint */
         if (ep.getReadCb() instanceof ReadableInt) {
@@ -99,13 +102,8 @@ public class MistNode {
 
     }
 
-    void write(Endpoint ep, byte[] peerBson, int requestId, byte[] args) {
+    protected void write(Endpoint ep, byte[] peerBson, int requestId, byte[] args) {
         Peer peer = Peer.fromBson(peerBson);
-
-        if (peer == null) {
-            writeError(ep.getEpid(), requestId, 347, "Invalid peer");
-            return;
-        }
 
         if (ep.getWriteCb() instanceof WritableBool) {
 

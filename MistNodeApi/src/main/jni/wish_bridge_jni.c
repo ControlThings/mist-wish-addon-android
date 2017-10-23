@@ -70,6 +70,11 @@ uint8_t my_wsid[WISH_WSID_LEN];
 void send_app_to_core(uint8_t *wsid, const uint8_t *data, size_t len) {
     android_wish_printf("Send app to core");
 
+    if (data == NULL) {
+        android_wish_printf("Send app to core: data is NULL!");
+        return;
+    }
+
     if (wsid == NULL) {
         android_wish_printf("send_app_to_core was supplied with NULL wsid, this indicates an error, giving up.");
         return;
@@ -125,6 +130,11 @@ void send_app_to_core(uint8_t *wsid, const uint8_t *data, size_t len) {
 
 JNIEXPORT void JNICALL Java_mist_WishBridgeJni_receive_1core_1to_1app(JNIEnv *env, jobject jthis, jbyteArray java_data) {
     android_wish_printf("Receive core to app");
+
+    if (java_data == NULL) {
+        android_wish_printf("Receive core to app: java_data is null.");
+        return;
+    }
 
     size_t data_length = (*env)->GetArrayLength(env, java_data);
     uint8_t *data = (uint8_t *) calloc(data_length, 1);

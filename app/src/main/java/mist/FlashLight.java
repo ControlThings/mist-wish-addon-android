@@ -6,6 +6,13 @@ import android.hardware.Camera;
 import android.hardware.camera2.CameraManager;
 import android.os.Build;
 
+import org.bson.BsonBinary;
+import org.bson.BsonBinaryWriter;
+import org.bson.BsonDocument;
+import org.bson.BsonWriter;
+import org.bson.RawBsonDocument;
+import org.bson.io.BasicOutputBuffer;
+
 import mist.node.Endpoint;
 import mist.node.MistNode;
 
@@ -33,7 +40,7 @@ public class FlashLight {
     private Endpoint lightEndpoint;
     private Endpoint myStringEndpoint;
     private Endpoint myIntEndpoint;
-
+    private Endpoint testInvoke;
 
     public FlashLight(Context context) {
         this._context = context;
@@ -45,7 +52,7 @@ public class FlashLight {
         mist = new Endpoint("mist").setRead(new Endpoint.ReadableString() {
             @Override
             public void read(Peer peer, Endpoint.ReadableStringResponse response) {
-                response.send("");
+                response.send("foo");
             }
         });
         mistName = new Endpoint("mist.name").setRead(new Endpoint.ReadableString() {
@@ -80,6 +87,28 @@ public class FlashLight {
                     }
                 });
         MistNode.getInstance().addEndpoint(lightEndpoint);
+        testInvoke = new Endpoint("testInvoke").setInvoke(new Endpoint.Invokable() {
+            @Override
+            public void invoke(byte[] args, Peer peer, Endpoint.InvokeResponse response) {
+                BasicOutputBuffer buffer = new BasicOutputBuffer();
+                BsonWriter writer = new BsonBinaryWriter(buffer);
+
+                writer.writeStartDocument();
+                writer.writeBinaryData("testArray", new BsonBinary(new byte[3]));
+                if (args != null) {
+                    writer.writeString("feedback", "The args you supplied was " + args.length + " bytes long.");
+                }
+                else {
+                    writer.writeString("feedback", "The args you supplied was null!");
+                }
+                writer.writeEndDocument();
+                writer.flush();
+
+                response.send(buffer.toByteArray());
+            }
+        });
+        MistNode.getInstance().addEndpoint(testInvoke);
+
     }
 
     private void turnOnFlashLight() {

@@ -3,9 +3,15 @@ package mist.node;
 import android.util.Log;
 
 import org.bson.BsonBinary;
+import org.bson.BsonBinaryReader;
 import org.bson.BsonBinaryWriter;
+import org.bson.BsonDocument;
+import org.bson.BsonDocumentReader;
+import org.bson.BsonReader;
 import org.bson.BsonWriter;
+import org.bson.RawBsonDocument;
 import org.bson.io.BasicOutputBuffer;
+import org.bson.io.ByteBufferBsonInput;
 
 import mist.Peer;
 
@@ -26,9 +32,9 @@ public class Endpoint {
     private String id;
 
     private String epid;
-    private String label;
+    private String label = "";
     private int type = MIST_TYPE_UNDEFINED;
-    private String unit;
+    private String unit = "";
 
     private boolean readable;
     private boolean writable;
@@ -39,8 +45,9 @@ public class Endpoint {
     private Invokable invokeCb;
 
     public Endpoint(String epid) {
-        /* Note: fullPath must be evaluated and parent field set accordingly */
+        /* Note: fullPath epid must be evaluated, id and parent field set accordingly */
         this.epid = epid;
+
         if (epid.lastIndexOf('.') == -1) {
             id = epid;
             parent = null;
@@ -364,6 +371,9 @@ public class Endpoint {
         }
 
         public void send(byte[] response) {
+            /* Note: the response will be wrapped to a document named 'data' on the JNI side
+             * FIXME this should be modified so that all the send()s of  would work the same - either wrap in 'data' on this side, or on the JNI side. */
+
             MistNode.getInstance().invokeResponse(epid, requestId, response);
         }
 
