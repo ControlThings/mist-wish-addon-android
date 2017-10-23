@@ -150,29 +150,39 @@ public class FlashLight {
                 BasicOutputBuffer buffer = new BasicOutputBuffer();
                 BsonWriter writer = new BsonBinaryWriter(buffer);
 
-                writer.writeStartDocument();
-                writer.writeString("op", "identity.list");
-                writer.writeStartArray("args");
-                writer.writeEndArray();
-                writer.writeInt32("id", 0);
-                writer.writeEndDocument();
-                writer.flush();
-                MistNode.getInstance().wishRequest(buffer.toByteArray(), new MistNode.RequestCb() {
-                    @Override
-                    public void response(byte[] data) {
-                        Log.d(TAG, "we got a response of len " + data.length);
-                    }
+                if (peer != null) {
+                    writer.writeStartDocument();
+                    writer.writeString("op", "identity.get");
+                    writer.writeStartArray("args");
+                    writer.writeBinaryData(new BsonBinary(peer.getLuid()));
+                    writer.writeEndArray();
+                    writer.writeInt32("id", 0);
+                    writer.writeEndDocument();
+                    writer.flush();
+                    MistNode.getInstance().wishRequest(buffer.toByteArray(), new MistNode.RequestCb() {
+                        @Override
+                        public void response(byte[] data) {
+                            Log.d(TAG, "we got a response of len " + data.length);
 
-                    @Override
-                    public void end() {
-                        Log.d(TAG, "we (end)");
-                    }
+                            BsonDocument bsonDocument = new RawBsonDocument(data);
+                            if (bsonDocument.containsKey("data")) {
+                                BsonDocument inner = bsonDocument.get("data").asDocument();
+                                String alias = inner.get("alias").asString().getValue();
+                                response.send("Your alias is " + alias);
+                            }
+                        }
 
-                    @Override
-                    public void err(int code, String msg) {
-                        Log.d(TAG, "we got error: " + msg + " code " + code);
-                    }
-                });
+                        @Override
+                        public void end() {
+                            Log.d(TAG, "we (end)");
+                        }
+
+                        @Override
+                        public void err(int code, String msg) {
+                            Log.d(TAG, "we got error: " + msg + " code " + code);
+                        }
+                    });
+                }
             }
         });
         MistNode.getInstance().addEndpoint(testWishRequest);
