@@ -27,11 +27,19 @@ public class Peer implements Serializable {
 
     private static int WISH_UID_LEN = 32;
 
+
     public static Peer fromBson(byte[] data) {
+        try {
+            return fromBson(new RawBsonDocument(data));
+        } catch (BSONException e) {
+            return null;
+        }
+    }
+
+    public static Peer fromBson(BsonDocument bsonDocument) {
 
         Peer peer = new Peer();
         try {
-            BsonDocument bsonDocument = new RawBsonDocument(data);
             if (bsonDocument.containsKey("luid")
                 && bsonDocument.containsKey("ruid")
                 && bsonDocument.containsKey("rhid")
@@ -57,8 +65,7 @@ public class Peer implements Serializable {
                 if (peer.rsid.length != WISH_UID_LEN) {
                     return null;
                 }
-            }
-            else {
+            } else {
                 return null;
             }
 
@@ -90,48 +97,24 @@ public class Peer implements Serializable {
         return luid;
     }
 
-    public void setLuid(byte[] luid) {
-        this.luid = luid;
-    }
-
     public byte[] getRuid() {
         return ruid;
-    }
-
-    public void setRuid(byte[] ruid) {
-        this.ruid = ruid;
     }
 
     public byte[] getRhid() {
         return rhid;
     }
 
-    public void setRhid(byte[] rhid) {
-        this.rhid = rhid;
-    }
-
     public byte[] getRsid() {
         return rsid;
-    }
-
-    public void setRsid(byte[] rsid) {
-        this.rsid = rsid;
     }
 
     public String getProtocol() {
         return protocol;
     }
 
-    public void setProtocol(String protocol) {
-        this.protocol = protocol;
-    }
-
     public boolean isOnline() {
         return online;
-    }
-
-    public void setOnline(boolean online) {
-        this.online = online;
     }
 
     private String byteArrayAsString(byte[] array) {
