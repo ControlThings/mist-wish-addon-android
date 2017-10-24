@@ -154,7 +154,7 @@ public class FlashLight {
                     writer.writeStartDocument();
                     writer.writeString("op", "identity.get");
                     writer.writeStartArray("args");
-                    writer.writeBinaryData(new BsonBinary(peer.getLuid()));
+                    writer.writeBinaryData(new BsonBinary(peer.getRuid()));
                     writer.writeEndArray();
                     writer.writeInt32("id", 0);
                     writer.writeEndDocument();
