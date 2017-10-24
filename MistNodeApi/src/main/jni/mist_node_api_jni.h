@@ -97,20 +97,31 @@ JNIEXPORT void JNICALL Java_mist_node_MistNode_changed
 
 /*
  * Class:     mist_node_MistNode
- * Method:    nodeRequest
- * Signature: ([BLjava/lang/String;[B)I
+ * Method:    request
+ * Signature: ([B[BLmist/node/MistNode/RequestCb;)I
  */
-JNIEXPORT jint JNICALL Java_mist_node_MistNode_nodeRequest
-  (JNIEnv *, jobject, jbyteArray, jstring, jbyteArray);
+JNIEXPORT jint JNICALL Java_mist_node_MistNode_request
+  (JNIEnv *, jobject, jbyteArray, jbyteArray, jobject);
 
 /*
  * Class:     mist_node_MistNode
  * Method:    wishRequest
- * Signature: ()I
+ * Signature: ([BLmist/node/MistNode/RequestCb;)I
  */
 JNIEXPORT jint JNICALL Java_mist_node_MistNode_wishRequest
-  (JNIEnv *, jobject);
+  (JNIEnv *, jobject, jbyteArray, jobject);
 
+#ifdef __cplusplus
+}
+#endif
+#endif
+/* Header for class mist_node_MistNode_RequestCb */
+
+#ifndef _Included_mist_node_MistNode_RequestCb
+#define _Included_mist_node_MistNode_RequestCb
+#ifdef __cplusplus
+extern "C" {
+#endif
 #ifdef __cplusplus
 }
 #endif

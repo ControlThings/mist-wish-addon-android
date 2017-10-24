@@ -5,6 +5,7 @@ import android.content.pm.PackageManager;
 import android.hardware.Camera;
 import android.hardware.camera2.CameraManager;
 import android.os.Build;
+import android.util.Log;
 
 import org.bson.BsonBinary;
 import org.bson.BsonBinaryWriter;
@@ -15,6 +16,7 @@ import org.bson.io.BasicOutputBuffer;
 
 import mist.node.Endpoint;
 import mist.node.MistNode;
+import mist.request.*;
 
 /**
  * Created by jeppe on 9/12/16.
@@ -41,6 +43,9 @@ public class FlashLight {
     private Endpoint myStringEndpoint;
     private Endpoint myIntEndpoint;
     private Endpoint testInvoke;
+    private Endpoint readingWillProduceError;
+    private Endpoint invokingSendsControlRead;
+    private Endpoint testWishRequest;
 
     public FlashLight(Context context) {
         this._context = context;
@@ -108,7 +113,79 @@ public class FlashLight {
             }
         });
         MistNode.getInstance().addEndpoint(testInvoke);
+        readingWillProduceError = new Endpoint("readingWillProduceError").setRead(new Endpoint.ReadableFloat() {
+            @Override
+            public void read(Peer peer, Endpoint.ReadableFloatResponse response) {
+                response.error(67, "Error 67 - I am so sorry.");
+            }
+        });
+        MistNode.getInstance().addEndpoint(readingWillProduceError);
+        invokingSendsControlRead = new Endpoint("reqTest").setInvoke(new Endpoint.Invokable() {
+            @Override
+            public void invoke(byte[] args, Peer peer, final Endpoint.InvokeResponse response) {
+                Log.d(TAG, "now testing request api");
+                Control.read(peer, "mist.name", new Control.ReadCb() {
+                    @Override
+                    public void cbString(String data) {
+                        Log.d(TAG, "cbString: " + data);
+                        BasicOutputBuffer buffer = new BasicOutputBuffer();
+                        BsonWriter writer = new BsonBinaryWriter(buffer);
 
+                        writer.writeStartDocument();
+                        writer.writeString("data", "mist.name is: " + data);
+                        writer.writeEndDocument();
+                        writer.flush();
+                        response.send(buffer.toByteArray());
+                    }
+
+                });
+
+            }
+        });
+
+        MistNode.getInstance().addEndpoint(invokingSendsControlRead);
+        testWishRequest = new Endpoint("wishReqTest").setRead(new Endpoint.ReadableString() {
+            @Override
+            public void read(Peer peer, final Endpoint.ReadableStringResponse response) {
+                BasicOutputBuffer buffer = new BasicOutputBuffer();
+                BsonWriter writer = new BsonBinaryWriter(buffer);
+
+                if (peer != null) {
+                    writer.writeStartDocument();
+                    writer.writeString("op", "identity.get");
+                    writer.writeStartArray("args");
+                    writer.writeBinaryData(new BsonBinary(peer.getLuid()));
+                    writer.writeEndArray();
+                    writer.writeInt32("id", 0);
+                    writer.writeEndDocument();
+                    writer.flush();
+                    MistNode.getInstance().wishRequest(buffer.toByteArray(), new MistNode.RequestCb() {
+                        @Override
+                        public void response(byte[] data) {
+                            Log.d(TAG, "we got a response of len " + data.length);
+
+                            BsonDocument bsonDocument = new RawBsonDocument(data);
+                            if (bsonDocument.containsKey("data")) {
+                                BsonDocument inner = bsonDocument.get("data").asDocument();
+                                String alias = inner.get("alias").asString().getValue();
+                                response.send("Your alias is " + alias);
+                            }
+                        }
+
+                        @Override
+                        public void end() {
+                            Log.d(TAG, "we (end)");
+                        }
+
+                        @Override
+                        public void err(int code, String msg) {
+                            Log.d(TAG, "we got error: " + msg + " code " + code);
+                        }
+                    });
+                }
+            }
+        });
+        MistNode.getInstance().addEndpoint(testWishRequest);
     }
 
     private void turnOnFlashLight() {
@@ -127,6 +204,8 @@ public class FlashLight {
         } catch (Exception e) {
             e.printStackTrace();
         }
+
+
     }
 
     private void turnOffFlashLight() {
