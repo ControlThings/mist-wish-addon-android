@@ -75,7 +75,7 @@ class WishBridge {
             } catch (RemoteException e) {
                 Log.d(TAG, "remote exeption in open:");
             }
-            _jni.connected(true);
+            _jni.isConnected();
         }
 
         @Override

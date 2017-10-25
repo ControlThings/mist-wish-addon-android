@@ -1,6 +1,7 @@
 package mist.node;
 
 import android.content.Context;
+import android.util.Log;
 
 import org.bson.BSONException;
 import org.bson.BsonDocument;
@@ -35,9 +36,14 @@ public class MistNode {
         return MistNodeApiHolder.INSTANCE;
     }
 
-    public void startMistApp(String appName, Context context) {
+    public void startMistApp(Context context) {
         this.context = context;
         file = new WishFile(context);
+
+        String appName = context.getPackageName();
+        if (appName.length() > 32) {
+            appName = appName.substring(0, 32);
+        }
         startMistApp(appName);
     }
 

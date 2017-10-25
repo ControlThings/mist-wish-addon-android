@@ -1,10 +1,14 @@
 package mist;
 
 import android.content.Context;
+import android.os.Bundle;
+import android.os.ResultReceiver;
 import android.util.Log;
 
 
 class WishBridgeJni {
+
+    static final int BRIDGE_CONNECTED = 32;
 
     static {
         System.loadLibrary("mist");
@@ -15,14 +19,20 @@ class WishBridgeJni {
     WishBridge wishBridge;
     byte[] wsid;
 
-    WishBridgeJni(Context context, Mist mist) {
+    ResultReceiver receiver;
+
+    WishBridgeJni(Context context, Mist mist, ResultReceiver receiver) {
         Log.d(TAG, "MistBridge started");
+        this.receiver = receiver;
         wishBridge = new WishBridge(context, this, mist);
         this.wsid = register(wishBridge);
         if (this.wsid == null) {
             Log.d(TAG, "this.wsid is null!");
         }
         wishBridge.startWish();
+
+
+
     }
 
     /**
@@ -33,6 +43,13 @@ class WishBridgeJni {
 
     native void receive_core_to_app(byte buffer[]);
     native void connected(boolean status);
+
+    void isConnected() {
+        connected(true);
+        if (receiver != null) {
+            receiver.send(BRIDGE_CONNECTED, null);
+        }
+    }
 
     void disconnect() {
         connected(false);

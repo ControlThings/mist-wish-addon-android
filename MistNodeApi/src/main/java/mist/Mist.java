@@ -2,8 +2,12 @@ package mist;
 
 import android.app.Service;
 import android.content.Intent;
+import android.os.Bundle;
 import android.os.IBinder;
+import android.os.ResultReceiver;
 import android.util.Log;
+
+import mist.node.MistNode;
 
 
 public class Mist extends Service {
@@ -12,23 +16,38 @@ public class Mist extends Service {
 
     WishBridgeJni wishBridgeJni;
     Mist mistInstance;
-    Intent _intent;
+
+    ResultReceiver mistReceiver;
 
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
         Log.d(TAG, "in onStartCommand");
-
         mistInstance = this;
-        this._intent = intent;
+
+        if (intent.hasExtra("receiver") && intent.getParcelableExtra("receiver") instanceof ResultReceiver) {
+            mistReceiver = intent.getParcelableExtra("receiver");
+        }
+
+        Log.d(TAG, "name: " + getBaseContext().getPackageName());
+
+
+        String appName =  intent.getStringExtra("name");
+
+
+        MistNode.getInstance().startMistApp(getBaseContext());
 
         new Thread(new Runnable() {
             @Override
             public void run() {
-                wishBridgeJni = new WishBridgeJni(getBaseContext(), mistInstance);
+                wishBridgeJni = new WishBridgeJni(getBaseContext(), mistInstance, mistReceiver);
             }
         }).start();
 
         return Service.START_STICKY;
+    }
+
+    private void connected() {
+
     }
 
     @Override
