@@ -52,7 +52,7 @@ public class FlashLight {
         initCameraId();
 
         /* FIXME this might be moved to Mist.java:onCreate */
-        MistNode.getInstance().startMistApp("Flashlight", context);
+       // MistNode.getInstance().startMistApp("Flashlight", context);
 
         mist = new Endpoint("mist").setRead(new Endpoint.ReadableString() {
             @Override
@@ -182,6 +182,7 @@ public class FlashLight {
                             Log.d(TAG, "we got error: " + msg + " code " + code);
                         }
                     });
+
                 }
             }
         });
