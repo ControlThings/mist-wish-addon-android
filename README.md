@@ -1,10 +1,10 @@
-You should have the mist-esp repository, branch master.
+You should have the mistService-esp repository, branch master.
 
-Symlink the following subdirectories of mist-esp to
+Symlink the following subdirectories of mistService-esp to
 referencelibrary/src/main/jni
 
 deps
-mist
+mistService
 wish_app
 wish_app_deps
 wish_rpc

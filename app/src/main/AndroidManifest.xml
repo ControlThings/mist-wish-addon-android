@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
-    package="fi.ct.mist.reference">
+    package="fi.ct.mistService.reference">
 
     <uses-permission android:name="android.permission.CAMERA" />
 
@@ -10,7 +10,7 @@
         android:label="@string/app_name"
         android:supportsRtl="true"
         android:theme="@style/AppTheme">
-        <activity android:name="mist.MainActivity" android:configChanges="screenSize|orientation">
+        <activity android:name="mistNodeApi.MainActivity" android:configChanges="screenSize|orientation">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
 
