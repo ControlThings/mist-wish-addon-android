@@ -10,7 +10,7 @@ import org.bson.RawBsonDocument;
 import org.bson.io.BasicOutputBuffer;
 
 import newApi.Peer;
-import mistNodeApi.node.MistNode;
+import node.MistNode;
 
 import static newApi.request.Callback.BSON_ERROR_CODE;
 import static newApi.request.Callback.BSON_ERROR_STRING;

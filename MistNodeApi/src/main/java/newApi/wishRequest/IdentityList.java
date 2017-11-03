@@ -12,7 +12,7 @@ import org.bson.io.BasicOutputBuffer;
 import java.util.ArrayList;
 import java.util.List;
 
-import mistNodeApi.node.MistNode;
+import node.MistNode;
 
 class IdentityList {
     static int request(Identity.ListCb callback) {

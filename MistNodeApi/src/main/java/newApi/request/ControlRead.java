@@ -7,8 +7,9 @@ import org.bson.BsonWriter;
 import org.bson.RawBsonDocument;
 import org.bson.io.BasicOutputBuffer;
 
+import node.MistNode;
 import newApi.Peer;
-import mistNodeApi.node.*;
+
 import static newApi.request.Callback.BSON_ERROR_CODE;
 import static newApi.request.Callback.BSON_ERROR_STRING;
 

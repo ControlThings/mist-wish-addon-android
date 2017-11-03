@@ -5,7 +5,7 @@ import org.bson.BsonWriter;
 import org.bson.io.BasicOutputBuffer;
 
 import newApi.Peer;
-import mistNodeApi.node.MistNode;
+import node.MistNode;
 
 class ControlWrite {
 
