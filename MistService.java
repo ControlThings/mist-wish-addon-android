@@ -6,7 +6,7 @@ import android.os.IBinder;
 import android.os.ResultReceiver;
 import android.util.Log;
 
-import node.MistNode;
+import mistNode.MistNode;
 
 
 public class MistService extends Service {
