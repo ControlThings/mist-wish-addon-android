@@ -9,7 +9,7 @@ import android.util.Log;
 import mistNode.MistNode;
 
 
-public class MistService extends Service {
+public abstract class MistService extends Service {
 
     private final String TAG = "Mist Service";
 
@@ -33,8 +33,8 @@ public class MistService extends Service {
         String appName =  intent.getStringExtra("name");
 
 
-        MistNode.getInstance().startMistApp(getBaseContext());
-
+        //MistNode.getInstance().startMistApp(getBaseContext());
+        startAddon();
 
 
         new Thread(new Runnable() {
@@ -46,6 +46,8 @@ public class MistService extends Service {
 
         return Service.START_NOT_STICKY;
     }
+
+    public abstract void startAddon();
 
     private void connected() {
 
