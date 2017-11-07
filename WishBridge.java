@@ -6,6 +6,7 @@ import android.content.Intent;
 import android.content.ServiceConnection;
 import android.os.Binder;
 import android.os.IBinder;
+import android.os.Looper;
 import android.os.Parcel;
 import android.os.RemoteException;
 import android.util.Log;
@@ -121,12 +122,13 @@ class WishBridge {
         @Override
         public void sendCoreToApp(final byte[] data) {
             Log.d(TAG, "in sendCoreToApp");
-            new Thread(new Runnable() {
+
+            new android.os.Handler(Looper.getMainLooper()).post(new Runnable() {
                 @Override
                 public void run() {
                     _jni.receive_core_to_app(data);
                 }
-            }).start();
+            });
         }
     };
 
