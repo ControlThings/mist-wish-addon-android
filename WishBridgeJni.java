@@ -20,18 +20,15 @@ class WishBridgeJni {
 
     ResultReceiver receiver;
 
-    WishBridgeJni(Context context, MistService mistService, ResultReceiver receiver) {
-        Log.d(TAG, "MistBridge started");
+    WishBridgeJni(Context context, AddonService addonService, ResultReceiver receiver) {
+        Log.d(TAG, "WishBridge started");
         this.receiver = receiver;
-        wishBridge = new WishBridge(context, this, mistService);
+        wishBridge = new WishBridge(context, this, addonService);
         this.wsid = register(wishBridge);
         if (this.wsid == null) {
             Log.d(TAG, "this.wsid is null!");
         }
         wishBridge.startWish();
-
-
-
     }
 
     /**

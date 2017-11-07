@@ -8,11 +8,11 @@ import android.os.ResultReceiver;
  * Created by jeppe on 10/25/17.
  */
 
-public class MistReceiver extends ResultReceiver {
+public class AddonReceiver extends ResultReceiver {
 
     private Receiver mReceiver;
 
-    public MistReceiver(Receiver receiver) {
+    public AddonReceiver(Receiver receiver) {
         super(new Handler());
         mReceiver = receiver;
         //super();

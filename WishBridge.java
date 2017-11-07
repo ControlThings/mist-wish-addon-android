@@ -22,7 +22,7 @@ class WishBridge {
     Context _context;
     WishBridgeJni _jni;
 
-    MistService _mistService;
+    AddonService addonService;
     // WishBridge wishBridge = null;
 
     CoreBridge coreBridge = null;
@@ -47,10 +47,10 @@ class WishBridge {
         this._context.bindService(wish, mConnection, 0);
     }
 
-    WishBridge(Context context, WishBridgeJni jni, MistService mistService) {
+    WishBridge(Context context, WishBridgeJni jni, AddonService addonService) {
         this._context = context;
         this._jni = jni;
-        this._mistService = mistService;
+        this.addonService = addonService;
 
         //Note: Don't start wish service here, because we need to first get the wsid. Let WishBridgeJni start the service instead, after wsid is saved.
     }
@@ -60,7 +60,7 @@ class WishBridge {
         @Override
         protected boolean onTransact(int code, Parcel data, Parcel reply, int flags) throws RemoteException {
             if (code == releaseCore) {
-                _mistService.unbindService(mConnection);
+                addonService.unbindService(mConnection);
             }
             return super.onTransact(code, data, reply, flags);
         }

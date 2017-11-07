@@ -6,25 +6,23 @@ import android.os.IBinder;
 import android.os.ResultReceiver;
 import android.util.Log;
 
-import mistNode.MistNode;
 
-
-public abstract class MistService extends Service {
+public abstract class AddonService extends Service {
 
     private final String TAG = "Mist Service";
 
     WishBridgeJni wishBridgeJni;
-    MistService mistServiceInstance;
+    AddonService addonServiceInstance;
 
-    ResultReceiver mistReceiver;
+    ResultReceiver addonReceiver;
 
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
         Log.d(TAG, "in onStartCommand");
-        mistServiceInstance = this;
+        addonServiceInstance = this;
 
         if (intent.hasExtra("receiver") && intent.getParcelableExtra("receiver") instanceof ResultReceiver) {
-            mistReceiver = intent.getParcelableExtra("receiver");
+            addonReceiver = intent.getParcelableExtra("receiver");
         }
 
         Log.d(TAG, "name: " + getBaseContext().getPackageName());
@@ -40,7 +38,7 @@ public abstract class MistService extends Service {
         new Thread(new Runnable() {
             @Override
             public void run() {
-                wishBridgeJni = new WishBridgeJni(getBaseContext(), mistServiceInstance, mistReceiver);
+                wishBridgeJni = new WishBridgeJni(getBaseContext(), addonServiceInstance, addonReceiver);
             }
         }).start();
 
