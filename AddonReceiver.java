@@ -25,7 +25,7 @@ public class AddonReceiver extends ResultReceiver {
     @Override
     protected void onReceiveResult(int resultCode, Bundle resultData) {
         if (mReceiver != null) {
-            if (resultCode == WishBridgeJni.BRIDGE_CONNECTED) {
+            if (resultCode == AddonService.BRIDGE_CONNECTED) {
                 mReceiver.onConnected();
             }
         }

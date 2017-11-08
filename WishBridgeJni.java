@@ -7,8 +7,6 @@ import android.util.Log;
 
 class WishBridgeJni {
 
-    static final int BRIDGE_CONNECTED = 32;
-
     static {
         System.loadLibrary("mist");
     }
@@ -20,9 +18,12 @@ class WishBridgeJni {
 
     ResultReceiver receiver;
 
-    WishBridgeJni(Context context, AddonService addonService, ResultReceiver receiver) {
+    AddonService addonService;
+
+    WishBridgeJni(Context context, AddonService addonService) {
         Log.d(TAG, "WishBridge started");
-        this.receiver = receiver;
+
+        this.addonService = addonService;
         wishBridge = new WishBridge(context, this, addonService);
         this.wsid = register(wishBridge);
         if (this.wsid == null) {
@@ -40,16 +41,15 @@ class WishBridgeJni {
     native void receive_core_to_app(byte buffer[]);
     native void connected(boolean status);
 
-    void isConnected() {
+    void setConnected() {
         connected(true);
-        if (receiver != null) {
-            receiver.send(BRIDGE_CONNECTED, null);
-        }
+        addonService.connected(true);
     }
 
     void disconnect() {
         connected(false);
         wishBridge.unbind();
+        addonService.connected(false);
     }
 
 }

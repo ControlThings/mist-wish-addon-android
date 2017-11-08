@@ -6,54 +6,58 @@ import android.os.IBinder;
 import android.os.ResultReceiver;
 import android.util.Log;
 
+import java.util.ArrayList;
+import java.util.List;
+
 
 public abstract class AddonService extends Service {
 
     private final String TAG = "Mist Service";
 
     WishBridgeJni wishBridgeJni;
-    AddonService addonServiceInstance;
 
-    ResultReceiver addonReceiver;
+    List<ResultReceiver> addonReceiverList = new ArrayList<>();
+
+    boolean connectedStatus;
 
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
         Log.d(TAG, "in onStartCommand");
-        addonServiceInstance = this;
 
         if (intent.hasExtra("receiver") && intent.getParcelableExtra("receiver") instanceof ResultReceiver) {
-            addonReceiver = intent.getParcelableExtra("receiver");
-        }
-
-        Log.d(TAG, "name: " + getBaseContext().getPackageName());
-
-
-        String appName =  intent.getStringExtra("name");
-
-
-        //MistNode.getInstance().startMistApp(getBaseContext());
-        startAddon();
-
-
-        new Thread(new Runnable() {
-            @Override
-            public void run() {
-                wishBridgeJni = new WishBridgeJni(getBaseContext(), addonServiceInstance, addonReceiver);
+            ResultReceiver addonReceiver = intent.getParcelableExtra("receiver");
+            addonReceiverList.add(addonReceiver);
+            if (connectedStatus) {
+                addonReceiver.send(BRIDGE_CONNECTED, null);
             }
-        }).start();
+        }
 
         return Service.START_NOT_STICKY;
     }
 
     public abstract void startAddon();
 
-    private void connected() {
+    static final int BRIDGE_CONNECTED = 32;
 
+    public void connected(boolean status) {
+        if (status) {
+            for (ResultReceiver addonReceiver : addonReceiverList) {
+                if (addonReceiver != null) {
+                    addonReceiver.send(BRIDGE_CONNECTED, null);
+                }
+            }
+        } else {
+            /* ??? */
+        }
+
+        connectedStatus = status;
     }
 
     @Override
     public void onCreate() {
         super.onCreate();
+        startAddon();
+        wishBridgeJni = new WishBridgeJni(getBaseContext(), this);
 
     }
 
