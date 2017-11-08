@@ -79,7 +79,7 @@ public abstract class AddonService extends Service {
     @Override
     public void onDestroy() {
         super.onDestroy();
-        wishBridgeJni.disconnect();
+        wishBridgeJni.setConnected(false);
     }
 }
 

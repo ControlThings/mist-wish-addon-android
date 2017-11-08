@@ -14,9 +14,11 @@ class WishBridgeJni {
     private final String TAG = "WishAppJni";
 
     WishBridge wishBridge;
-    byte[] wsid;
+    private byte[] wsid;
 
-    ResultReceiver receiver;
+    public byte[] getWsid() {
+        return wsid;
+    }
 
     AddonService addonService;
 
@@ -41,15 +43,12 @@ class WishBridgeJni {
     native void receive_core_to_app(byte buffer[]);
     native void connected(boolean status);
 
-    void setConnected() {
-        connected(true);
-        addonService.connected(true);
-    }
-
-    void disconnect() {
-        connected(false);
-        wishBridge.unbind();
-        addonService.connected(false);
+    void setConnected(boolean status) {
+        connected(status);
+        addonService.connected(status);
+        if (!status) {
+            wishBridge.unbind();
+        }
     }
 
 }

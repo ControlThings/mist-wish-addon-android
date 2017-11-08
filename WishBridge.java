@@ -17,35 +17,24 @@ import fi.ct.bridge.CoreBridge;
 class WishBridge {
 
     private final String TAG = "WishBridge";
-    private final int releaseCore = 1;
+    private final int TRANSACT_CODE_RELEASE_CORE = 1;
 
     Context _context;
     WishBridgeJni _jni;
 
     AddonService addonService;
-    // WishBridge wishBridge = null;
 
     CoreBridge coreBridge = null;
 
     boolean mBound = false;
 
+    /** This is set to true when startWish() has been invoked, and set to false in mConnection.onServiceStarted
+     */
+    boolean wishServiceStarting = false;
+
     Intent wish;
 
     private byte[] _wsid;
-
-    void startWish() {
-        wish = new Intent();
-        wish.setComponent(new ComponentName("fi.ct.wish", "fi.ct.wish.Wish"));
-
-        if (_jni.wsid != null) {
-            _wsid = _jni.wsid;
-        } else {
-            Log.d(TAG, "WARNING FAIL wsid is null!");
-        }
-
-        _context.startService(wish);
-        this._context.bindService(wish, mConnection, 0);
-    }
 
     WishBridge(Context context, WishBridgeJni jni, AddonService addonService) {
         this._context = context;
@@ -55,11 +44,33 @@ class WishBridge {
         //Note: Don't start wish service here, because we need to first get the wsid. Let WishBridgeJni start the service instead, after wsid is saved.
     }
 
+    void startWish() {
+
+        if (wishServiceStarting) {
+            // startWish() is already starting Wish!
+            return;
+        }
+        wishServiceStarting = true;
+
+        wish = new Intent();
+        wish.setComponent(new ComponentName("fi.ct.wish", "fi.ct.wish.Wish"));
+
+        _wsid = _jni.getWsid();
+        if (_wsid == null) {
+            new AddonException("WSID is null!");
+        }
+
+        _context.startService(wish);
+        _context.bindService(wish, mConnection, Context.BIND_AUTO_CREATE);
+    }
+
+
+
 
     private class LocalBinder extends Binder {
         @Override
         protected boolean onTransact(int code, Parcel data, Parcel reply, int flags) throws RemoteException {
-            if (code == releaseCore) {
+            if (code == TRANSACT_CODE_RELEASE_CORE) {
                 addonService.unbindService(mConnection);
             }
             return super.onTransact(code, data, reply, flags);
@@ -71,18 +82,20 @@ class WishBridge {
         public void onServiceConnected(ComponentName name, IBinder service) {
             coreBridge = CoreBridge.Stub.asInterface(service);
             mBound = true;
+            wishServiceStarting = false;
             try {
                 coreBridge.register(new LocalBinder(), _wsid, bridge);
             } catch (RemoteException e) {
                 Log.d(TAG, "remote exeption in open:");
             }
-            _jni.setConnected();
+            _jni.setConnected(true);
         }
 
         @Override
         public void onServiceDisconnected(ComponentName name) {
             coreBridge = null;
             mBound = false;
+            _jni.setConnected(false);
         }
     };
 
@@ -115,6 +128,8 @@ class WishBridge {
 
         } catch (RemoteException e) {
             Log.v(TAG, "RemoteException occurred in receiveAppToCore");
+
+            startWish();
         }
     }
 
