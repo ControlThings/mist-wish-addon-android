@@ -7,9 +7,12 @@ import android.util.Log;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
+import java.io.IOException;
 import java.nio.channels.FileChannel;
 import java.util.HashMap;
 import java.util.Map;
+
+import utils.Util;
 
 
 /**
@@ -77,12 +80,16 @@ public class WishFile {
 
 
 
-    public int write(int fileID, byte[] data) {
+    public int write(int fileID, byte[] data, int count) {
         FileOutputStream outputStream;
         //Log.d(TAG, "Writing to file name " + fileNames.get(fileID) + " id " + fileID + " data len " + data.length);
         try {
+            if (count != data.length) {
+                throw new AddonException("Write count does match supplied data buffer size!");
+            }
+
             if(checkValidId(fileID) == false) {
-                throw new Exception("Bad fileId!");
+                throw new AddonException("Bad fileId!");
             }
             outputStream = _context.openFileOutput(fileNames.get(fileID), openMode);
             FileChannel channel = outputStream.getChannel();
@@ -104,10 +111,14 @@ public class WishFile {
 
     public int read(int fileId, byte[] data, int count) {
         FileInputStream inputStream;
-        //Log.d(TAG, "Read from file name " + fileNames.get(fileId) + " id " + fileId + " len " + count);
+
         try {
+            if (count != data.length) {
+                throw new AddonException("Read count does not match data buffer size!");
+            }
+
             if(checkValidId(fileId) == false) {
-                throw new Exception("Bad fileId!");
+                throw new AddonException("Bad fileId!");
             }
             inputStream = _context.openFileInput(fileNames.get(fileId));
             FileChannel channel = inputStream.getChannel();
@@ -132,9 +143,9 @@ public class WishFile {
                 inputStream.close();
                 return numBytesRead;
             }
-        } catch (Exception e) {
-            e.printStackTrace();
-            return -1;
+        } catch (IOException e) {
+            throw new AddonException("In WishFile.read, caused by: " + Util.prettyPrintException(e));
+            //return -1;
         }
     }
 
@@ -150,7 +161,7 @@ public class WishFile {
         //Log.d(TAG, "Seeking file id " + fileId + " offset " + offset + " whence " + whence);
         try {
             if(checkValidId(fileId) == false) {
-                throw new Exception("Bad fileId!");
+                throw new AddonException("Bad fileId!");
             }
             switch (whence) {
                 case SEEK_SET:
