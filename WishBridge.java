@@ -13,7 +13,7 @@ import android.util.Log;
 
 import fi.ct.bridge.AppBridge;
 import fi.ct.bridge.CoreBridge;
-import local.Util;
+import utils.Util;
 
 class WishBridge {
 
