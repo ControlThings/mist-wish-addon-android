@@ -19,7 +19,10 @@ public class AddonReceiver extends ResultReceiver {
     }
 
     public interface Receiver {
+        /* Callback function invoked when connection to Wish Core is established */
         public void onConnected();
+        /* Callback function invoked when connection to Wish Core is lost */
+        public void onDisconnected();
     }
 
     @Override
@@ -27,6 +30,9 @@ public class AddonReceiver extends ResultReceiver {
         if (mReceiver != null) {
             if (resultCode == AddonService.BRIDGE_CONNECTED) {
                 mReceiver.onConnected();
+            }
+            else if (resultCode == AddonService.BRIDGE_DISCONNECTED) {
+                mReceiver.onDisconnected();
             }
         }
     }

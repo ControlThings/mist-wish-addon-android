@@ -13,6 +13,7 @@ import android.util.Log;
 
 import fi.ct.bridge.AppBridge;
 import fi.ct.bridge.CoreBridge;
+import local.Util;
 
 class WishBridge {
 
@@ -80,6 +81,7 @@ class WishBridge {
     private ServiceConnection mConnection = new ServiceConnection() {
         @Override
         public void onServiceConnected(ComponentName name, IBinder service) {
+            Log.d(TAG, "onServiceConnected");
             coreBridge = CoreBridge.Stub.asInterface(service);
             mBound = true;
             wishServiceStarting = false;
@@ -93,10 +95,13 @@ class WishBridge {
 
         @Override
         public void onServiceDisconnected(ComponentName name) {
+            Log.d(TAG, "onServiceDisconnected");
             coreBridge = null;
             mBound = false;
             _jni.setConnected(false);
         }
+
+
     };
 
     /**
@@ -150,7 +155,12 @@ class WishBridge {
     void unbind() {
         Log.d(TAG, "cleanup appBridge");
         if (mBound) {
-            _context.unbindService(mConnection);
+            try {
+                _context.unbindService(mConnection);
+            } catch (IllegalArgumentException iae) {
+                Log.d(TAG, Util.prettyPrintException(iae));
+            }
+
             mBound = false;
         }
 

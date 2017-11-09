@@ -14,6 +14,9 @@ public abstract class AddonService extends Service {
 
     private final String TAG = "Mist Service";
 
+    static final int BRIDGE_CONNECTED = 32;
+    static final int BRIDGE_DISCONNECTED = 33;
+
     WishBridgeJni wishBridgeJni;
 
     List<ResultReceiver> addonReceiverList = new ArrayList<>();
@@ -37,17 +40,17 @@ public abstract class AddonService extends Service {
 
     public abstract void startAddon();
 
-    static final int BRIDGE_CONNECTED = 32;
-
     public void connected(boolean status) {
-        if (status) {
-            for (ResultReceiver addonReceiver : addonReceiverList) {
-                if (addonReceiver != null) {
+
+        for (ResultReceiver addonReceiver : addonReceiverList) {
+            if (addonReceiver != null) {
+                if (status) {
                     addonReceiver.send(BRIDGE_CONNECTED, null);
+                } else {
+                    addonReceiver.send(BRIDGE_DISCONNECTED, null);
                 }
+
             }
-        } else {
-            /* ??? */
         }
 
         connectedStatus = status;
