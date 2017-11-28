@@ -144,7 +144,7 @@ class WishBridge {
             Log.d(TAG, "in sendCoreToApp");
             /* Enqueue the request on the app's main thread, implying that incoming messages from core
             to this app are executed in a serial fashion.
-            If this behaviour is changed, then you must ensure that the callbacks are invoked 
+            If this behaviour is changed, then you must ensure that the callbacks are invoked
              */
             new android.os.Handler(Looper.getMainLooper()).post(new Runnable() {
                 @Override
