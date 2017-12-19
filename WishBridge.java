@@ -71,8 +71,10 @@ class WishBridge {
     private class LocalBinder extends Binder {
         @Override
         protected boolean onTransact(int code, Parcel data, Parcel reply, int flags) throws RemoteException {
+            Log.d(TAG, "onTransact, code: " + code);
             if (code == TRANSACT_CODE_RELEASE_CORE) {
                 addonService.unbindService(mConnection);
+                mConnection.onServiceDisconnected(null);
             }
             return super.onTransact(code, data, reply, flags);
         }
@@ -100,7 +102,6 @@ class WishBridge {
             mBound = false;
             _jni.setConnected(false);
         }
-
 
     };
 

@@ -12,7 +12,7 @@ import java.util.List;
 
 public abstract class AddonService extends Service {
 
-    private final String TAG = "Mist Service";
+    private final String TAG = "AddonService";
 
     static final int BRIDGE_CONNECTED = 32;
     static final int BRIDGE_DISCONNECTED = 33;
@@ -66,16 +66,19 @@ public abstract class AddonService extends Service {
 
     @Override
     public IBinder onBind(Intent intent) {
+        Log.d(TAG, "onBind");
         return null;
     }
 
     @Override
     public void onRebind(Intent intent) {
+        Log.d(TAG, "onRebind");
         super.onRebind(intent);
     }
 
     @Override
     public boolean onUnbind(Intent intent) {
+        Log.d(TAG, "onUnbind");
         return true;
     }
 
