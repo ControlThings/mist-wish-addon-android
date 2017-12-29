@@ -28,8 +28,9 @@ class WishBridge {
     CoreBridge coreBridge = null;
 
     boolean mBound = false;
-
-    /** This is set to true when startWish() has been invoked, and set to false in mConnection.onServiceStarted
+    boolean connected = false;
+    /**
+     * This is set to true when startWish() has been invoked, and set to false in mConnection.onServiceStarted
      */
     boolean wishServiceStarting = false;
 
@@ -62,10 +63,8 @@ class WishBridge {
         }
 
         _context.startService(wish);
-        _context.bindService(wish, mConnection, Context.BIND_AUTO_CREATE);
+        mBound = _context.bindService(wish, mConnection, Context.BIND_AUTO_CREATE);
     }
-
-
 
 
     private class LocalBinder extends Binder {
@@ -85,7 +84,7 @@ class WishBridge {
         public void onServiceConnected(ComponentName name, IBinder service) {
             Log.d(TAG, "onServiceConnected");
             coreBridge = CoreBridge.Stub.asInterface(service);
-            mBound = true;
+            connected = true;
             wishServiceStarting = false;
             try {
                 coreBridge.register(new LocalBinder(), _wsid, bridge);
@@ -99,7 +98,7 @@ class WishBridge {
         public void onServiceDisconnected(ComponentName name) {
             Log.d(TAG, "onServiceDisconnected");
             coreBridge = null;
-            mBound = false;
+            connected = false;
             _jni.setConnected(false);
         }
 
@@ -112,9 +111,8 @@ class WishBridge {
      */
     public void receiveAppToCore(byte[] wsid, byte[] data) {
         Log.v(TAG, "in receiveAppToCore");
-        if (!mBound) {
+        if (!connected) {
             Log.v(TAG, "Error: not bound, attempting rebound");
-
             startWish();
             return;
         }
@@ -161,12 +159,12 @@ class WishBridge {
         if (mBound) {
             try {
                 _context.unbindService(mConnection);
+
             } catch (IllegalArgumentException iae) {
                 Log.d(TAG, Util.prettyPrintException(iae));
             }
-
+            connected = false;
             mBound = false;
         }
-
     }
 }
