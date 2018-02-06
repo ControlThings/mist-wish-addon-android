@@ -5,6 +5,7 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.ServiceConnection;
 import android.os.Binder;
+import android.os.Build;
 import android.os.IBinder;
 import android.os.Looper;
 import android.os.Parcel;
@@ -62,7 +63,12 @@ class WishBridge {
             new AddonException("WSID is null!");
         }
 
-        _context.startService(wish);
+        if (Build.VERSION.SDK_INT > Build.VERSION_CODES.N_MR1) {
+            _context.startForegroundService(wish);
+        } else {
+            _context.startService(wish);
+        }
+
         mBound = _context.bindService(wish, mConnection, Context.BIND_AUTO_CREATE);
     }
 
