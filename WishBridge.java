@@ -55,8 +55,9 @@ class WishBridge {
         }
         wishServiceStarting = true;
 
-        wish = new Intent();
-        wish.setComponent(new ComponentName("fi.ct.wish", "fi.ct.wish.Wish"));
+        wish = new Intent("fi.ct.wish.Wish");
+        wish.setPackage(_context.getPackageName());
+        //wish.setComponent(new ComponentName("fi.ct.mist", "fi.ct.wish.Wish"));
 
         _wsid = _jni.getWsid();
         if (_wsid == null) {
