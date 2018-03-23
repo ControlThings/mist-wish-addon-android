@@ -64,11 +64,11 @@ class WishBridge {
             new AddonException("WSID is null!");
         }
 
-        if (Build.VERSION.SDK_INT > Build.VERSION_CODES.N_MR1) {
+       /* if (Build.VERSION.SDK_INT > Build.VERSION_CODES.N_MR1) {
             _context.startForegroundService(wish);
-        } else {
+        } else { */
             _context.startService(wish);
-        }
+       // }
 
         mBound = _context.bindService(wish, mConnection, Context.BIND_AUTO_CREATE);
     }
