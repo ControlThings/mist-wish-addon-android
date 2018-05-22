@@ -73,7 +73,6 @@ class WishBridge {
         mBound = _context.bindService(wish, mConnection, Context.BIND_AUTO_CREATE);
     }
 
-
     private class LocalBinder extends Binder {
         @Override
         protected boolean onTransact(int code, Parcel data, Parcel reply, int flags) throws RemoteException {
@@ -166,6 +165,7 @@ class WishBridge {
         if (mBound) {
             try {
                 _context.unbindService(mConnection);
+                _context.stopService(wish);
 
             } catch (IllegalArgumentException iae) {
                 Log.d(TAG, Util.prettyPrintException(iae));
