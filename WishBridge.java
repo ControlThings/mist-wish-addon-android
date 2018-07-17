@@ -116,7 +116,7 @@ class WishBridge {
      * @param data
      */
     public void receiveAppToCore(byte[] wsid, byte[] data) {
-        Log.v(TAG, "in receiveAppToCore");
+        //Log.v(TAG, "in receiveAppToCore");
         if (!connected) {
             Log.v(TAG, "Error: not bound, attempting rebound");
             startWish();
@@ -146,7 +146,7 @@ class WishBridge {
     private AppBridge.Stub bridge = new AppBridge.Stub() {
         @Override
         public void sendCoreToApp(final byte[] data) {
-            Log.d(TAG, "in sendCoreToApp");
+            //Log.d(TAG, "in sendCoreToApp");
             /* Enqueue the request on the app's main thread, implying that incoming messages from core
             to this app are executed in a serial fashion.
             If this behaviour is changed, then you must ensure that the callbacks are invoked
